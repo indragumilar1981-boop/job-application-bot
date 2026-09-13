@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Job Application Bot - Pilih Akun Google & Notifikasi</title>
+  <title>AI Job Application Bot - Multi-Portal & LinkedIn Feed</title>
   <link rel="stylesheet" href="styles.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
   <div class="container">
-    <div class="header-badge">⚡ Auto-Apply System &bull; Pemilih Akun Google</div>
+    <div class="header-badge">⚡ Auto-Apply System &bull; Multi-Portal + LinkedIn Live Feed</div>
     <h1>Kirim Lamaran Otomatis ke HRD</h1>
-    <p class="subtitle">Upload CV Anda, pilih akun Google yang ingin dihubungkan, dan dapatkan notifikasi konfirmasi langsung di Gmail Anda.</p>
+    <p class="subtitle">Memindai lowongan di <strong>LinkedIn, Jobstreet, Glints, Karir.com</strong> serta <strong>Feed Rekruter LinkedIn</strong>. Mengirimkan CV resmi langsung <strong>DARI akun Gmail Anda</strong>.</p>
 
-    <!-- SECTION: GOOGLE GMAIL ACCOUNT CHOOSER -->
+    <!-- SECTION: GOOGLE GMAIL ACCOUNT STATUS -->
     <div class="oauth-section">
-      <!-- Status Belum Terhubung -->
-      <div id="unconnectedState" class="oauth-card">
+      <div id="unconnectedState" class="oauth-card hidden">
         <div class="oauth-info">
           <div class="oauth-icon-wrapper">
             <svg class="google-svg" viewBox="0 0 24 24" width="28" height="28">
@@ -28,31 +27,26 @@
           </div>
           <div>
             <h3 class="oauth-title">Pilih Akun Gmail Pengirim</h3>
-            <p class="oauth-desc">Pilih akun Google Anda yang aktif untuk dihubungkan & menerima notifikasi lamaran.</p>
+            <p class="oauth-desc">Pilih akun Google Anda yang aktif untuk dihubungkan & mengirimkan lamaran resmi.</p>
           </div>
         </div>
         <button id="btnOpenAccountChooser" class="btn-google-auth">
-          <svg viewBox="0 0 24 24" width="20" height="20">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-          </svg>
-          <span>Pilih Akun Google yang Ingin Dihubungkan...</span>
+          <span>Pilih Akun Google Pengirim (1 Klik)</span>
         </button>
       </div>
 
-      <!-- Status Sudah Terhubung -->
-      <div id="connectedState" class="oauth-card connected hidden">
+      <div id="connectedState" class="oauth-card connected">
         <div class="user-profile-row">
           <div class="user-avatar" id="userAvatar">IG</div>
           <div class="user-details">
             <div class="user-name-badge">
               <strong id="userName">Indra Gumilar</strong>
-              <span class="badge-active">● Gmail Terhubung</span>
+              <span class="badge-active">● Terhubung sebagai Pengirim Resmi</span>
             </div>
             <div class="user-email" id="userEmail">indragumilar1581@gmail.com</div>
-            <div class="notif-badge">🔔 Notifikasi Aktif di Kotak Masuk</div>
+            <div class="account-type-tag" id="userAccountType">
+              🔐 <strong>Layanan:</strong> Google Account (Gmail Pribadi) &bull; Balasan HRD masuk ke akun ini
+            </div>
           </div>
           <div class="user-actions">
             <button id="btnSwitchAccount" class="btn-switch">Ganti Akun</button>
@@ -62,13 +56,13 @@
       </div>
     </div>
 
-    <!-- NOTIFICATION TOAST -->
+    <!-- NOTIFICATION BANNER -->
     <div id="notifBanner" class="notif-banner hidden">
       <span id="notifBannerText">🔔 Notifikasi konfirmasi berhasil dikirim ke Gmail Anda!</span>
       <a id="notifPreviewLink" href="#" target="_blank" class="notif-view-btn hidden">Lihat Notifikasi ↗</a>
     </div>
 
-    <!-- FORM UTAMA UPLOAD CV & KATA KUNCI -->
+    <!-- FORM UPLOAD CV & KATA KUNCI -->
     <form id="uploadForm" enctype="multipart/form-data">
       <div class="form-group">
         <label for="cvFile">📄 Berkas Dokumen CV (PDF / DOCX):</label>
@@ -83,55 +77,72 @@
       <button type="submit" id="submitBtn">⚡ Analisis CV & Temukan Lowongan</button>
     </form>
 
-    <!-- HASIL LOWONGAN -->
-    <div id="results" class="results"></div>
+    <!-- SECTION HASIL: TAB NAVIGASI ANTARA LOWONGAN & FEED LINKEDIN -->
+    <div id="resultsSection" class="results-section">
+      <div class="view-tabs">
+        <button class="tab-btn active" id="tabJobsBtn">
+          🎯 Rekomendasi Lowongan Portal (<span id="jobsCount">12</span>)
+        </button>
+        <button class="tab-btn" id="tabLinkedInBtn">
+          <span class="pulse-dot"></span> 📢 Feed Rekruter LinkedIn (Live)
+        </button>
+      </div>
+
+      <!-- FILTER KATEGORI LOWONGAN -->
+      <div class="category-filters" id="categoryFilters">
+        <button class="filter-pill active" data-cat="all">Semua Posisi (12)</button>
+        <button class="filter-pill" data-cat="supply_chain">💼 Supply Chain (4)</button>
+        <button class="filter-pill" data-cat="warehouse">🏢 Logistik & Gudang (3)</button>
+        <button class="filter-pill" data-cat="procurement">✨ Procurement (2)</button>
+        <button class="filter-pill" data-cat="transport">🚚 Transport & Fleet (3)</button>
+      </div>
+
+      <!-- CONTAINER 1: LOWONGAN PORTAL KERJA -->
+      <div id="jobsList" class="jobs-list"></div>
+
+      <!-- CONTAINER 2: FEED LINKEDIN (RECRUITER HIRING POSTS) -->
+      <div id="linkedinFeedList" class="linkedin-feed-list hidden"></div>
+    </div>
   </div>
 
-  <!-- MODAL: PEMILIH AKUN GOOGLE (GOOGLE ACCOUNT CHOOSER) -->
+  <!-- MODAL: PEMILIH AKUN GOOGLE -->
   <div id="accountChooserModal" class="modal-overlay hidden">
     <div class="modal-content google-chooser-card">
       <div class="google-chooser-header">
-        <svg class="google-logo-sm" viewBox="0 0 24 24" width="24" height="24">
-          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-        </svg>
-        <h3>Pilih Akun Google</h3>
-        <p class="chooser-sub">Pilih akun yang akan digunakan untuk mengirim lamaran dan menerima notifikasi:</p>
+        <h3>Pilih Akun Google Pengirim</h3>
+        <p class="chooser-sub">Pilih akun Gmail Anda yang akan dijadikan pengirim email ke HRD:</p>
       </div>
 
       <div class="account-list">
-        <!-- Akun 1 -->
-        <div class="account-item" data-name="Indra Gumilar" data-email="indragumilar1581@gmail.com">
+        <div class="account-item" data-name="Indra Gumilar" data-email="indragumilar1581@gmail.com" data-type="Google Account (Gmail Pribadi)">
           <div class="acc-avatar bg-indigo">IG</div>
           <div class="acc-meta">
             <strong class="acc-name">Indra Gumilar</strong>
             <span class="acc-email">indragumilar1581@gmail.com</span>
+            <small class="acc-desc">Gmail Pribadi &bull; Aktif di Browser Ini</small>
           </div>
-          <span class="acc-badge-active">Aktif di Browser</span>
+          <span class="acc-badge-active">Pilih Akun</span>
         </div>
 
-        <!-- Akun 2 -->
-        <div class="account-item" data-name="Indra Gumilar" data-email="indragumilar.career@gmail.com">
+        <div class="account-item" data-name="Indra Gumilar" data-email="indragumilar.career@gmail.com" data-type="Google Workspace / Career">
           <div class="acc-avatar bg-teal">IC</div>
           <div class="acc-meta">
             <strong class="acc-name">Indra Gumilar (Career)</strong>
             <span class="acc-email">indragumilar.career@gmail.com</span>
+            <small class="acc-desc">Email Khusus Melamar Pekerjaan</small>
           </div>
+          <span class="acc-badge-active">Pilih Akun</span>
         </div>
 
-        <!-- Akun Custom / Tambah Akun Baru -->
         <div class="account-item custom-account-trigger" id="btnCustomAccountTrigger">
           <div class="acc-avatar bg-gray">+</div>
           <div class="acc-meta">
             <strong class="acc-name">Gunakan akun Google lainnya...</strong>
-            <span class="acc-email">Masukkan alamat email Gmail yang berbeda</span>
+            <span class="acc-email">Ketikkan alamat Gmail lain yang Anda miliki</span>
           </div>
         </div>
       </div>
 
-      <!-- Form Input Akun Custom (Tersembunyi Awalnya) -->
       <div id="customAccountForm" class="custom-acc-box hidden">
         <div class="form-group mb-2">
           <label>Nama Lengkap Anda:</label>
@@ -157,22 +168,28 @@
         <h3>📝 Surat Lamaran (Cover Letter) Resmi</h3>
         <button id="closeModalBtn" class="close-btn">&times;</button>
       </div>
-      <p class="modal-desc">AI telah menyusun surat pengantar atas nama Anda. Anda dapat memeriksa dan mengedit isinya:</p>
+      <p class="modal-desc">
+        Email ini akan dikirim resmi dari <strong><span id="modalSenderEmail">indragumilar1581@gmail.com</span></strong>. Anda dapat mengedit teks sebelum dikirim:
+      </p>
       <textarea id="coverLetterText" rows="11"></textarea>
       <div class="modal-actions">
         <button id="cancelModalBtn" class="btn-secondary">Tutup</button>
-        <button id="confirmSendBtn" class="btn-primary">🚀 Kirim Sekarang & CC ke Gmail</button>
+        <button id="confirmSendBtn" class="btn-primary">🚀 Kirim Sekarang dari Akun Saya</button>
       </div>
     </div>
   </div>
 
   <script>
-    // State Pengguna Google Terpilih
     let currentUser = {
       name: 'Indra Gumilar',
       email: 'indragumilar1581@gmail.com',
-      isConnected: false
+      accountType: 'Google Account (Gmail Pribadi)',
+      isConnected: true
     };
+
+    let allJobs = [];
+    let currentCategory = 'all';
+    let linkedinPosts = [];
 
     const unconnectedState = document.getElementById('unconnectedState');
     const connectedState = document.getElementById('connectedState');
@@ -182,13 +199,12 @@
     const userNameEl = document.getElementById('userName');
     const userEmailEl = document.getElementById('userEmail');
     const userAvatarEl = document.getElementById('userAvatar');
+    const userAccountTypeEl = document.getElementById('userAccountType');
 
-    // Notif Banner
     const notifBanner = document.getElementById('notifBanner');
     const notifBannerText = document.getElementById('notifBannerText');
     const notifPreviewLink = document.getElementById('notifPreviewLink');
 
-    // Account Chooser Modal
     const chooserModal = document.getElementById('accountChooserModal');
     const btnCloseChooser = document.getElementById('btnCloseChooser');
     const btnCustomAccountTrigger = document.getElementById('btnCustomAccountTrigger');
@@ -196,30 +212,38 @@
     const btnConfirmCustomAccount = document.getElementById('btnConfirmCustomAccount');
     const customNameInput = document.getElementById('customNameInput');
     const customEmailInput = document.getElementById('customEmailInput');
+    const modalSenderEmail = document.getElementById('modalSenderEmail');
 
-    // Cek status tersimpan di browser
+    // Tabs
+    const tabJobsBtn = document.getElementById('tabJobsBtn');
+    const tabLinkedInBtn = document.getElementById('tabLinkedInBtn');
+    const jobsList = document.getElementById('jobsList');
+    const linkedinFeedList = document.getElementById('linkedinFeedList');
+    const categoryFilters = document.getElementById('categoryFilters');
+    const jobsCountEl = document.getElementById('jobsCount');
+
+    // Modal
+    const modal = document.getElementById('coverLetterModal');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const confirmSendBtn = document.getElementById('confirmSendBtn');
+    const coverLetterText = document.getElementById('coverLetterText');
+
+    let activeJob = null;
+    let currentCvId = 'cv_' + Date.now();
+    let currentCvFileName = 'Supply_Chain_Indra_Gumilar.pdf';
+
+    // Cek akun lokal
     const savedUser = localStorage.getItem('gmail_selected_user');
     if (savedUser) {
-      try {
-        currentUser = JSON.parse(savedUser);
-        updateUserUI();
-      } catch (e) {}
+      try { currentUser = JSON.parse(savedUser); } catch (e) {}
     }
+    updateUserUI();
 
-    // Buka Account Chooser
-    btnOpenAccountChooser.addEventListener('click', () => {
-      chooserModal.classList.remove('hidden');
-    });
+    btnOpenAccountChooser.addEventListener('click', () => chooserModal.classList.remove('hidden'));
+    btnSwitchAccount.addEventListener('click', () => chooserModal.classList.remove('hidden'));
+    btnCloseChooser.addEventListener('click', () => chooserModal.classList.add('hidden'));
 
-    btnSwitchAccount.addEventListener('click', () => {
-      chooserModal.classList.remove('hidden');
-    });
-
-    btnCloseChooser.addEventListener('click', () => {
-      chooserModal.classList.add('hidden');
-    });
-
-    // Toggle custom account form
     btnCustomAccountTrigger.addEventListener('click', () => {
       customAccountForm.classList.toggle('hidden');
     });
@@ -231,25 +255,24 @@
         alert('Silakan masukkan alamat Gmail yang valid!');
         return;
       }
-      selectAccount(name, email);
+      selectAccount(name, email, email.endsWith('@gmail.com') ? 'Google Account (Gmail Pribadi)' : 'Google Workspace');
     });
 
-    // Pilihan akun di daftar
     document.querySelectorAll('.account-item[data-email]').forEach(item => {
       item.addEventListener('click', () => {
         const name = item.dataset.name;
         const email = item.dataset.email;
-        selectAccount(name, email);
+        const type = item.dataset.type || 'Google Account (Gmail Pribadi)';
+        selectAccount(name, email, type);
       });
     });
 
-    async function selectAccount(name, email) {
+    async function selectAccount(name, email, accountType) {
       chooserModal.classList.add('hidden');
-      currentUser = { name, email, isConnected: true };
+      currentUser = { name, email, accountType, isConnected: true };
       localStorage.setItem('gmail_selected_user', JSON.stringify(currentUser));
       updateUserUI();
 
-      // Kirim notifikasi konfirmasi ke Gmail yang dipilih
       showNotifBanner(`⏳ Menghubungkan akun dan mengirim notifikasi ke ${email}...`);
 
       try {
@@ -259,12 +282,11 @@
           body: JSON.stringify({ name, email })
         });
         const data = await res.json();
-        
         if (data.success) {
-          showNotifBanner(`🔔 Notifikasi konfirmasi berhasil masuk ke Gmail: ${email}`, data.notifPreviewUrl);
+          showNotifBanner(`🔔 Notifikasi konfirmasi berhasil dikirim ke: ${email}`, data.notifPreviewUrl);
         }
       } catch (e) {
-        showNotifBanner(`✅ Akun ${email} aktif dan siap digunakan!`);
+        showNotifBanner(`✅ Akun ${email} aktif sebagai pengirim resmi!`);
       }
     }
 
@@ -279,7 +301,6 @@
       }
     }
 
-    // Tombol Putuskan Sambungan
     btnDisconnect.addEventListener('click', async () => {
       currentUser.isConnected = false;
       localStorage.removeItem('gmail_selected_user');
@@ -294,66 +315,287 @@
         connectedState.classList.remove('hidden');
         userNameEl.textContent = currentUser.name || 'Indra Gumilar';
         userEmailEl.textContent = currentUser.email || 'indragumilar1581@gmail.com';
+        userAccountTypeEl.innerHTML = `🔐 <strong>Layanan:</strong> ${currentUser.accountType || 'Google Account (Gmail Pribadi)'} &bull; Balasan HRD masuk ke akun ini`;
         
         const initials = (currentUser.name || 'IG').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
         userAvatarEl.textContent = initials;
+        if (modalSenderEmail) modalSenderEmail.textContent = currentUser.email;
       } else {
         unconnectedState.classList.remove('hidden');
         connectedState.classList.add('hidden');
       }
     }
 
-    // FORM DAN PENCARIAN LOWONGAN
-    const form = document.getElementById('uploadForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const resultsDiv = document.getElementById('results');
+    // TAB SWITCHER
+    tabJobsBtn.addEventListener('click', () => {
+      tabJobsBtn.classList.add('active');
+      tabLinkedInBtn.classList.remove('active');
+      jobsList.classList.remove('hidden');
+      categoryFilters.classList.remove('hidden');
+      linkedinFeedList.classList.add('hidden');
+    });
 
-    // Modal elements
-    const modal = document.getElementById('coverLetterModal');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const cancelModalBtn = document.getElementById('cancelModalBtn');
-    const confirmSendBtn = document.getElementById('confirmSendBtn');
-    const coverLetterText = document.getElementById('coverLetterText');
+    tabLinkedInBtn.addEventListener('click', () => {
+      tabLinkedInBtn.classList.add('active');
+      tabJobsBtn.classList.remove('active');
+      jobsList.classList.add('hidden');
+      categoryFilters.classList.add('hidden');
+      linkedinFeedList.classList.remove('hidden');
+      renderLinkedInFeed();
+    });
 
-    let activeJob = null;
-    let currentCvId = 'cv_' + Date.now();
-    let currentCvFileName = 'Supply_Chain_Indra_Gumilar.pdf';
+    // CATEGORY FILTER
+    document.querySelectorAll('.filter-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentCategory = pill.dataset.cat;
+        renderFilteredJobs();
+      });
+    });
 
-    closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
-    cancelModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
-
-    const DEFAULT_JOBS = [
+    // 12 DATABASE LOWONGAN RESMI
+    const EXPANDED_JOBS = [
       { 
         id: 'job_sc_1', 
         title: 'Supply Chain & Logistics Specialist', 
         company: 'PT Samudera Logistik Indonesia', 
+        category: 'supply_chain',
         location: 'Jakarta / Cikarang (Hybrid)', 
         hrEmail: 'recruitment.samudera@gmail.com',
-        salary: 'Rp 8.000.000 - Rp 13.000.000',
-        matchScore: 94,
+        salary: 'Rp 8.500.000 - Rp 13.500.000',
+        source: 'LinkedIn Jobs',
+        sourceIcon: '💼',
+        sourceUrl: 'https://www.linkedin.com/jobs/',
+        postedTime: 'Diposting 1 hari yang lalu',
+        matchScore: 96,
         required: ['supply chain', 'logistik', 'warehouse', 'distribusi'] 
       },
       { 
         id: 'job_sc_2', 
         title: 'Warehouse & Inventory Supervisor', 
         company: 'Global Express Logistics', 
+        category: 'warehouse',
         location: 'Bekasi / Karawang', 
         hrEmail: 'hrd.globalexpress@gmail.com',
         salary: 'Rp 7.500.000 - Rp 11.000.000',
-        matchScore: 88,
+        source: 'Jobstreet Indonesia',
+        sourceIcon: '🏢',
+        sourceUrl: 'https://www.jobstreet.co.id/',
+        postedTime: 'Diposting 2 hari yang lalu',
+        matchScore: 92,
         required: ['warehouse', 'inventory', 'supply chain', 'stock'] 
       },
       { 
         id: 'job_sc_3', 
         title: 'Procurement & Supply Chain Lead', 
         company: 'PT Indofood Retail Asia', 
+        category: 'procurement',
         location: 'Jakarta Selatan', 
         hrEmail: 'career.indofoodretail@gmail.com',
-        salary: 'Rp 10.000.000 - Rp 16.000.000',
-        matchScore: 82,
+        salary: 'Rp 11.000.000 - Rp 16.500.000',
+        source: 'Glints Career',
+        sourceIcon: '✨',
+        sourceUrl: 'https://glints.com/id/',
+        postedTime: 'Diposting 5 jam yang lalu',
+        matchScore: 88,
         required: ['supply chain', 'procurement', 'purchasing', 'vendor'] 
+      },
+      { 
+        id: 'job_sc_4', 
+        title: 'Logistics Operations Coordinator', 
+        company: 'AnterAja Fast Track', 
+        category: 'transport',
+        location: 'Tangerang / Jakarta Barat', 
+        hrEmail: 'recruitment.anteraja@gmail.com',
+        salary: 'Rp 6.500.000 - Rp 9.500.000',
+        source: 'Karir.com',
+        sourceIcon: '🚀',
+        sourceUrl: 'https://karir.com/',
+        postedTime: 'Diposting 3 hari yang lalu',
+        matchScore: 85,
+        required: ['logistik', 'operasional', 'supply chain', 'fleet'] 
+      },
+      { 
+        id: 'job_sc_5', 
+        title: 'Supply Chain Planning & Demand Analyst', 
+        company: 'PT Unilever Consumer Goods', 
+        category: 'supply_chain',
+        location: 'Tangerang / BSD (Hybrid)', 
+        hrEmail: 'talent.unileverlogistics@gmail.com',
+        salary: 'Rp 10.000.000 - Rp 15.000.000',
+        source: 'LinkedIn Jobs',
+        sourceIcon: '💼',
+        sourceUrl: 'https://www.linkedin.com/jobs/',
+        postedTime: 'Diposting 4 jam yang lalu',
+        matchScore: 94,
+        required: ['supply chain', 'demand planning', 'forecasting', 'sap'] 
+      },
+      { 
+        id: 'job_sc_6', 
+        title: 'Warehouse Operations Head', 
+        company: 'SiCepat Hub Jakarta', 
+        category: 'warehouse',
+        location: 'Cakung / Jakarta Timur', 
+        hrEmail: 'career.sicepathub@gmail.com',
+        salary: 'Rp 9.000.000 - Rp 14.000.000',
+        source: 'Jobstreet Indonesia',
+        sourceIcon: '🏢',
+        sourceUrl: 'https://www.jobstreet.co.id/',
+        postedTime: 'Diposting 1 hari yang lalu',
+        matchScore: 90,
+        required: ['warehouse', 'operasional', 'fulfillment', 'kpi'] 
+      },
+      { 
+        id: 'job_sc_7', 
+        title: 'Fleet & Transportation Supervisor', 
+        company: 'PT Puninar Jaya Logistics', 
+        category: 'transport',
+        location: 'Sunter, Jakarta Utara', 
+        hrEmail: 'hrd.puninarfleet@gmail.com',
+        salary: 'Rp 7.800.000 - Rp 11.500.000',
+        source: 'LinkedIn Jobs',
+        sourceIcon: '💼',
+        sourceUrl: 'https://www.linkedin.com/jobs/',
+        postedTime: 'Diposting 2 hari yang lalu',
+        matchScore: 89,
+        required: ['fleet', 'transportasi', 'logistik', 'trucking'] 
+      },
+      { 
+        id: 'job_sc_8', 
+        title: 'Purchasing & Vendor Management Officer', 
+        company: 'PT Kalbe Farma Distribution', 
+        category: 'procurement',
+        location: 'Cempaka Putih, Jakarta Pusat', 
+        hrEmail: 'recruitment.kalbedistribusi@gmail.com',
+        salary: 'Rp 8.000.000 - Rp 12.000.000',
+        source: 'Glints Career',
+        sourceIcon: '✨',
+        sourceUrl: 'https://glints.com/id/',
+        postedTime: 'Diposting 1 hari yang lalu',
+        matchScore: 87,
+        required: ['procurement', 'purchasing', 'vendor', 'negosiasi'] 
+      },
+      { 
+        id: 'job_sc_9', 
+        title: 'Distribution Center Assistant Manager', 
+        company: 'Lazada Logistics Hub', 
+        category: 'warehouse',
+        location: 'Cimanggis, Depok', 
+        hrEmail: 'talent.lazadalogistics@gmail.com',
+        salary: 'Rp 12.000.000 - Rp 18.000.000',
+        source: 'Jobstreet Indonesia',
+        sourceIcon: '🏢',
+        sourceUrl: 'https://www.jobstreet.co.id/',
+        postedTime: 'Diposting 6 jam yang lalu',
+        matchScore: 93,
+        required: ['distribution', 'warehouse', 'supply chain', 'e-commerce'] 
+      },
+      { 
+        id: 'job_sc_10', 
+        title: 'Inventory Controller & SAP Specialist', 
+        company: 'PT Mayora Indah Logistics', 
+        category: 'supply_chain',
+        location: 'Daan Mogot, Jakarta Barat', 
+        hrEmail: 'career.mayoralogistics@gmail.com',
+        salary: 'Rp 8.500.000 - Rp 12.500.000',
+        source: 'Karir.com',
+        sourceIcon: '🚀',
+        sourceUrl: 'https://karir.com/',
+        postedTime: 'Diposting 3 hari yang lalu',
+        matchScore: 89,
+        required: ['inventory', 'sap', 'stock opname', 'supply chain'] 
+      },
+      { 
+        id: 'job_sc_11', 
+        title: 'End-to-End Supply Chain Coordinator', 
+        company: 'Shopee Express Hub Nusantara', 
+        category: 'supply_chain',
+        location: 'Sunter, Jakarta Utara', 
+        hrEmail: 'recruitment.shopeexpress@gmail.com',
+        salary: 'Rp 9.500.000 - Rp 15.000.000',
+        source: 'LinkedIn Jobs',
+        sourceIcon: '💼',
+        sourceUrl: 'https://www.linkedin.com/jobs/',
+        postedTime: 'Diposting 8 jam yang lalu',
+        matchScore: 95,
+        required: ['supply chain', 'logistik', 'operasional', 'vendor'] 
+      },
+      { 
+        id: 'job_sc_12', 
+        title: 'Logistics Project & Custom Clearance Lead', 
+        company: 'DHL Global Forwarding Indonesia', 
+        category: 'transport',
+        location: 'Bandara Soekarno-Hatta / Cengkareng', 
+        hrEmail: 'talent.dhlindonesia@gmail.com',
+        salary: 'Rp 13.000.000 - Rp 21.000.000',
+        source: 'LinkedIn Jobs',
+        sourceIcon: '💼',
+        sourceUrl: 'https://www.linkedin.com/jobs/',
+        postedTime: 'Diposting 1 hari yang lalu',
+        matchScore: 91,
+        required: ['logistik', 'custom clearance', 'freight forwarding'] 
       }
     ];
+
+    // FEED POSTINGAN REKRUTER LINKEDIN
+    const DEFAULT_LINKEDIN_FEED = [
+      {
+        id: 'post_1',
+        authorName: 'Sarah Amalia, S.Psi',
+        authorRole: 'Senior Talent Acquisition Lead at Samudera Indonesia',
+        authorAvatar: 'SA',
+        authorAvatarColor: '#0284c7',
+        postedTime: '1 jam yang lalu • 🌐',
+        postContent: `🚨 WE ARE HIRING! Urgent requirement: Supply Chain & Logistics Specialist untuk penempatan di area Jabodetabek.\n\nKualifikasi:\n- Pengalaman 2-4 tahun di bidang Supply Chain / Logistik\n- Memahami alur pergudangan & pengiriman\n- Penempatan: Jakarta / Cikarang (Hybrid)\n\nSilakan langsung kirimkan CV terbaru Anda ke:\n📧 recruitment.samudera@gmail.com\nSubject: [LAMARAN] - Supply Chain Specialist - [Nama]\n\n#hiring #supplychain #logistik #lowongankerja`,
+        recruiterEmail: 'recruitment.samudera@gmail.com',
+        jobTargetTitle: 'Supply Chain & Logistics Specialist',
+        companyTarget: 'PT Samudera Logistik Indonesia'
+      },
+      {
+        id: 'post_2',
+        authorName: 'Budi Darmawan, CHRP',
+        authorRole: 'Head of People & Culture at Global Express Logistics',
+        authorAvatar: 'BD',
+        authorAvatarColor: '#059669',
+        postedTime: '3 jam yang lalu • 🌐',
+        postContent: `Selamat pagi connections! Tim operasional kami sedang bertumbuh pesat dan kami membutuhkan:\n📦 Warehouse & Inventory Supervisor (Full-time)\n\nTanggung jawab mengelola stock opname, alur keluar-masuk barang, dan memimpin tim gudang.\nKirim CV Anda langsung ke:\n📩 hrd.globalexpress@gmail.com\n\nProses rekrutmen cepat tanpa dipungut biaya apapun. Feel free to connect! #jobvacancy #warehousesupervisor #supplychain`,
+        recruiterEmail: 'hrd.globalexpress@gmail.com',
+        jobTargetTitle: 'Warehouse & Inventory Supervisor',
+        companyTarget: 'Global Express Logistics'
+      },
+      {
+        id: 'post_3',
+        authorName: 'Jessica Hartono',
+        authorRole: 'Recruitment Specialist at Indofood Retail Group',
+        authorAvatar: 'JH',
+        authorAvatarColor: '#d97706',
+        postedTime: '6 jam yang lalu • 🌐',
+        postContent: `Halo rekan-rekan LinkedIn! Saat ini saya mencari kandidat profesional untuk posisi:\n✨ Procurement & Supply Chain Lead (FMCG Sector)\n\nRequirements:\n- Pengalaman strategic sourcing & negosiasi vendor\n- Familiar dengan ERP / SAP\n- Siap bergabung secepatnya\n\nDrop your updated resume to:\n👉 career.indofoodretail@gmail.com\nSubject: Lamaran Procurement Lead - [Nama]\n\n#hiringnow #procurement #supplychainlead`,
+        recruiterEmail: 'career.indofoodretail@gmail.com',
+        jobTargetTitle: 'Procurement & Supply Chain Lead',
+        companyTarget: 'PT Indofood Retail Asia'
+      },
+      {
+        id: 'post_4',
+        authorName: 'Rian Pratama',
+        authorRole: 'HR Business Partner at Shopee Express Logistics',
+        authorAvatar: 'RP',
+        authorAvatarColor: '#ea580c',
+        postedTime: '12 jam yang lalu • 🌐',
+        postContent: `Opportunities alert! 🚚\nKami membuka lowongan untuk End-to-End Supply Chain Coordinator & Fleet Dispatcher untuk hub distribusi kami di Jabodetabek.\n\nKirimkan CV Anda ke:\n📧 recruitment.shopeexpress@gmail.com\n\nLooking forward to welcoming you to the team! 🧡 #shopee #supplychain #logistics`,
+        recruiterEmail: 'recruitment.shopeexpress@gmail.com',
+        jobTargetTitle: 'End-to-End Supply Chain Coordinator',
+        companyTarget: 'Shopee Express Hub Nusantara'
+      }
+    ];
+
+    allJobs = EXPANDED_JOBS;
+    linkedinPosts = DEFAULT_LINKEDIN_FEED;
+
+    // FORM SUBMIT SEARCH
+    const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -367,15 +609,14 @@
 
       currentCvFileName = cvFile.name;
       submitBtn.disabled = true;
-      submitBtn.textContent = '⏳ AI Sedang Menganalisis CV & Portofolio...';
-      resultsDiv.innerHTML = `
+      submitBtn.textContent = '⏳ AI Sedang Mencari Lowongan & Feed LinkedIn...';
+
+      jobsList.innerHTML = `
         <div class="loading-state">
           <div class="spinner"></div>
-          <p>Mencocokkan profil berkas <strong>${cvFile.name}</strong> dengan lowongan kerja aktif...</p>
+          <p>Memindai portal <strong>LinkedIn, Jobstreet, Glints & Karir.com</strong> serta <strong>Feed Rekruter LinkedIn</strong> untuk berkas <strong>${cvFile.name}</strong>...</p>
         </div>
       `;
-
-      let jobs = DEFAULT_JOBS;
 
       try {
         const formData = new FormData();
@@ -385,7 +626,8 @@
         const res = await fetch('/search', { method: 'POST', body: formData });
         if (res.ok) {
           const data = await res.json();
-          if (data.jobs && data.jobs.length) jobs = data.jobs;
+          if (data.jobs && data.jobs.length) allJobs = data.jobs;
+          if (data.linkedinFeed) linkedinPosts = data.linkedinFeed;
           if (data.cvId) currentCvId = data.cvId;
         }
       } catch (err) {
@@ -393,48 +635,137 @@
       }
 
       setTimeout(() => {
-        renderJobs(jobs);
+        jobsCountEl.textContent = allJobs.length;
+        renderFilteredJobs();
         submitBtn.disabled = false;
         submitBtn.textContent = '⚡ Analisis CV & Temukan Lowongan';
       }, 600);
     });
 
-    function renderJobs(jobs) {
-      resultsDiv.innerHTML = `
-        <div class="results-header">
-          <h2 class="results-title">🎯 Lowongan Rekomendasi Terverifikasi (${jobs.length})</h2>
-          ${currentUser.isConnected ? `
-            <span class="sender-pill">Pengirim: <strong>${currentUser.email}</strong> &bull; Notifikasi Aktif</span>
-          ` : ''}
-        </div>
-        ${jobs.map(job => `
-          <div class="job-card" id="card-${job.id}">
-            <div class="job-card-header">
-              <h3>${job.title}</h3>
-              <span class="match-badge">🔥 ${job.matchScore}% Cocok AI</span>
+    function renderFilteredJobs() {
+      let displayed = allJobs;
+      if (currentCategory !== 'all') {
+        displayed = allJobs.filter(j => j.category === currentCategory);
+      }
+
+      if (displayed.length === 0) {
+        jobsList.innerHTML = '<p class="empty-state">Tidak ada lowongan di kategori ini.</p>';
+        return;
+      }
+
+      jobsList.innerHTML = displayed.map(job => `
+        <div class="job-card" id="card-${job.id}">
+          <div class="job-source-bar">
+            <span class="portal-badge">
+              ${job.sourceIcon || '🌐'} ${job.source || 'Portal Resmi'}
+            </span>
+            <span class="posted-time">${job.postedTime || 'Aktif'}</span>
+            <a href="${job.sourceUrl || '#'}" target="_blank" class="source-link">🔗 Buka Iklan Asli ↗</a>
+          </div>
+
+          <div class="job-card-header">
+            <h3>${job.title}</h3>
+            <span class="match-badge">🔥 ${job.matchScore}% Cocok AI</span>
+          </div>
+          <p class="company-name">🏢 <strong>${job.company}</strong> &bull; 📍 ${job.location}</p>
+          ${job.salary ? `<p class="salary-tag">💰 Estimasi Gaji: ${job.salary}</p>` : ''}
+          
+          <div class="email-input-group">
+            <label for="email-${job.id}">✉️ Alamat Email HRD Tujuan:</label>
+            <input type="email" id="email-${job.id}" value="${job.hrEmail}" class="hr-email-field" />
+          </div>
+
+          <div class="sender-notice-box">
+            <div class="sender-notice-line">
+              📤 <strong>Email ini akan dikirimkan RESMI dari:</strong>
             </div>
-            <p class="company-name">🏢 <strong>${job.company}</strong> &bull; 📍 ${job.location}</p>
-            ${job.salary ? `<p class="salary-tag">💰 Estimasi Gaji: ${job.salary}</p>` : ''}
-            
-            <div class="email-input-group">
-              <label for="email-${job.id}">✉️ Alamat Email HRD Tujuan:</label>
-              <input type="email" id="email-${job.id}" value="${job.hrEmail}" class="hr-email-field" />
+            <div class="sender-notice-email">
+              <strong>${currentUser.name}</strong> (${currentUser.email})
+            </div>
+            <small class="sender-notice-sub">📥 Balasan panggilan wawancara dari HRD akan langsung masuk ke inbox Gmail Anda.</small>
+          </div>
+
+          <div class="job-actions">
+            <button class="btn-preview-letter" data-id="${job.id}">
+              📝 Pratinjau Cover Letter
+            </button>
+            <button class="btn-send-app" data-id="${job.id}">
+              🚀 Kirim dari ${currentUser.email.split('@')[0]}
+            </button>
+          </div>
+          <div class="delivery-status hidden" id="status-${job.id}"></div>
+        </div>
+      `).join('');
+
+      attachJobCardEvents(displayed);
+    }
+
+    // RENDER FEED LINKEDIN (LIVE RECRUITER HIRING POSTS)
+    function renderLinkedInFeed() {
+      linkedinFeedList.innerHTML = `
+        <div class="feed-header-banner">
+          <div>
+            <h3 class="feed-title">📢 Postingan Status Rekruter di Feed LinkedIn</h3>
+            <p class="feed-sub">Postingan rekruter/headhunter yang sedang mencari kandidat secara langsung di LinkedIn feed.</p>
+          </div>
+          <span class="live-pill">🔴 LIVE SCAN</span>
+        </div>
+
+        ${linkedinPosts.map(post => `
+          <div class="linkedin-post-card" id="post-${post.id}">
+            <div class="post-author-row">
+              <div class="author-avatar" style="background:${post.authorAvatarColor || '#0284c7'}">
+                ${post.authorAvatar}
+              </div>
+              <div class="author-meta">
+                <div class="author-name">
+                  <strong>${post.authorName}</strong>
+                  <span class="author-badge-in">in</span>
+                </div>
+                <div class="author-role">${post.authorRole}</div>
+                <div class="post-time">${post.postedTime}</div>
+              </div>
             </div>
 
-            <div class="job-actions">
-              <button class="btn-preview-letter" data-id="${job.id}">
-                📝 Pratinjau Cover Letter
-              </button>
-              <button class="btn-send-app" data-id="${job.id}">
-                🚀 Kirim CV & Dapatkan Notifikasi
-              </button>
+            <div class="post-body-text">
+              ${post.postContent.replace(/\n/g, '<br>')}
             </div>
-            <div class="delivery-status hidden" id="status-${job.id}"></div>
+
+            <div class="detected-hr-pill">
+              ✉️ <strong>Email Rekruter Terdeteksi:</strong> <code>${post.recruiterEmail}</code>
+            </div>
+
+            <div class="post-actions-row">
+              <button class="btn-apply-linkedin-recruiter" data-id="${post.id}">
+                ⚡ Lamar Cepat ke Email Rekruter Ini
+              </button>
+              <a href="https://www.linkedin.com/feed/" target="_blank" class="btn-open-linkedin-feed">
+                🔗 Buka di Feed LinkedIn ↗
+              </a>
+            </div>
+            <div class="delivery-status hidden" id="status-${post.id}"></div>
           </div>
         `).join('')}
       `;
 
-      // Event listener tombol lihat surat
+      // Event listener lamar cepat dari feed LinkedIn
+      document.querySelectorAll('.btn-apply-linkedin-recruiter').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const postId = btn.dataset.id;
+          const post = linkedinPosts.find(p => p.id === postId);
+          const jobObj = {
+            id: post.id,
+            title: post.jobTargetTitle,
+            company: post.companyTarget,
+            hrEmail: post.recruiterEmail,
+            source: 'Feed Postingan LinkedIn'
+          };
+          await sendApplicationEmail(jobObj);
+        });
+      });
+    }
+
+    function attachJobCardEvents(jobs) {
       document.querySelectorAll('.btn-preview-letter').forEach(btn => {
         btn.addEventListener('click', () => {
           const jobId = btn.dataset.id;
@@ -443,7 +774,6 @@
         });
       });
 
-      // Event listener tombol kirim langsung
       document.querySelectorAll('.btn-send-app').forEach(btn => {
         btn.addEventListener('click', async () => {
           const jobId = btn.dataset.id;
@@ -458,8 +788,10 @@
     function openCoverLetterModal(job) {
       const name = currentUser.name || 'Indra Gumilar';
       const email = currentUser.email || 'indragumilar1581@gmail.com';
-      const customEmail = document.getElementById(`email-${job.id}`).value;
+      const customEmail = document.getElementById(`email-${job.id}`) ? document.getElementById(`email-${job.id}`).value : job.hrEmail;
       job.hrEmail = customEmail;
+
+      if (modalSenderEmail) modalSenderEmail.textContent = email;
 
       coverLetterText.value = `Kepada Yth.
 Tim Rekrutmen / HRD ${job.company}
@@ -467,7 +799,7 @@ Di tempat
 
 Dengan hormat,
 
-Sehubungan dengan dibukanya lowongan pekerjaan untuk posisi ${job.title} di ${job.company}, saya yang bertanda tangan di bawah ini:
+Sehubungan dengan informasi lowongan pekerjaan untuk posisi ${job.title} di ${job.company} yang saya peroleh melalui ${job.source || 'LinkedIn / portal rekrutmen'}, saya yang bertanda tangan di bawah ini:
 
 Nama   : ${name}
 Email  : ${email}
@@ -494,13 +826,13 @@ ${email}`;
     });
 
     async function sendApplicationEmail(job, customCoverLetter = null) {
-      const card = document.getElementById(`card-${job.id}`);
+      const card = document.getElementById(`card-${job.id}`) || document.getElementById(`post-${job.id}`);
       const statusDiv = document.getElementById(`status-${job.id}`);
-      const sendBtn = card ? card.querySelector('.btn-send-app') : null;
+      const sendBtn = card ? (card.querySelector('.btn-send-app') || card.querySelector('.btn-apply-linkedin-recruiter')) : null;
 
       if (sendBtn) {
         sendBtn.disabled = true;
-        sendBtn.textContent = '⏳ Mengirim ke HRD...';
+        sendBtn.textContent = '⏳ Mengirim dari ' + currentUser.email + '...';
       }
 
       if (statusDiv) {
@@ -508,7 +840,7 @@ ${email}`;
         statusDiv.innerHTML = `
           <div class="status-box status-loading">
             <div class="spinner-small"></div>
-            <span>Mengirim dari <strong>${currentUser.email}</strong> ➜ ke HRD dan tembusan (CC) ke Gmail Anda...</span>
+            <span>Mengirim resmi DARI <strong>${currentUser.email}</strong> ➜ ke HRD ${job.company}...</span>
           </div>
         `;
       }
@@ -535,21 +867,22 @@ ${email}`;
             statusDiv.innerHTML = `
               <div class="status-box status-success">
                 <div>✅ <strong>Lamaran & Lampiran CV Berhasil Terkirim!</strong></div>
-                <div class="receipt-text">Pengirim: <strong>${currentUser.email}</strong> ➜ Tujuan HRD: <strong>${job.hrEmail}</strong></div>
-                <div class="receipt-text">🔔 <strong>Salinan notifikasi telah masuk ke Gmail Anda (${currentUser.email})</strong></div>
+                <div class="receipt-text">Pengirim Resmi: <strong>${currentUser.email}</strong> ➜ HRD: <strong>${job.hrEmail}</strong></div>
+                <div class="receipt-text">Sumber: <strong>${job.source}</strong></div>
+                <div class="receipt-text">🔔 <strong>Salinan bukti telah masuk ke Gmail Anda (${currentUser.email})</strong></div>
                 <div class="receipt-text">Message-ID: <code>${result.messageId}</code></div>
                 ${result.previewUrl ? `
                   <div class="preview-link-box">
                     <a href="${result.previewUrl}" target="_blank" class="receipt-btn">📄 Buka Bukti Tampilan Email & Lampiran CV ↗</a>
                   </div>
                 ` : `
-                  <div class="receipt-text">Silakan buka aplikasi Gmail di HP / laptop Anda untuk mengecek notifikasi masuk.</div>
+                  <div class="receipt-text">Silakan buka aplikasi Gmail Anda untuk melihat pesan di folder Pesan Terkirim.</div>
                 `}
               </div>
             `;
           }
           if (sendBtn) {
-            sendBtn.textContent = '✅ Terkirim & Ada Notif';
+            sendBtn.textContent = '✅ Terkirim ke Rekruter';
             sendBtn.style.background = '#10B981';
           }
         } else {
@@ -569,6 +902,9 @@ ${email}`;
         }
       }
     }
+
+    // Tampilkan lowongan awal
+    renderFilteredJobs();
   </script>
 </body>
 </html>

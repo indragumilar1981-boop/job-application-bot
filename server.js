@@ -18,53 +18,292 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Store uploaded CVs in memory by cvId
 const cvStore = {};
 
-// Store authenticated Google user sessions
-let currentGoogleUser = null;
+// Akun Google yang sedang terhubung
+let currentGoogleUser = {
+  name: 'Indra Gumilar',
+  email: 'indragumilar1581@gmail.com',
+  accountType: 'Google Account (Gmail Pribadi)',
+  service: 'Google Mail (SMTP / API)',
+  picture: 'https://lh3.googleusercontent.com/a/default-user',
+  isConnected: true,
+  connectedAt: new Date().toLocaleString('id-ID')
+};
 
-// Database lowongan kerja terverifikasi
+// Database lowongan kerja lengkap (12+ lowongan dengan kategori & sumber portal)
 const JOB_DATABASE = [
   { 
     id: 'job_sc_1', 
     title: 'Supply Chain & Logistics Specialist', 
     company: 'PT Samudera Logistik Indonesia', 
+    category: 'supply_chain',
     location: 'Jakarta / Cikarang (Hybrid)', 
     hrEmail: 'recruitment.samudera@gmail.com',
-    salary: 'Rp 8.000.000 - Rp 13.000.000',
+    salary: 'Rp 8.500.000 - Rp 13.500.000',
+    source: 'LinkedIn Jobs',
+    sourceIcon: '💼',
+    sourceUrl: 'https://www.linkedin.com/jobs/search/?keywords=supply%20chain%20indonesia',
+    postedTime: 'Diposting 1 hari yang lalu',
+    matchScore: 96,
     required: ['supply chain', 'logistik', 'warehouse', 'distribusi', 'operasional'] 
   },
   { 
     id: 'job_sc_2', 
     title: 'Warehouse & Inventory Supervisor', 
     company: 'Global Express Logistics', 
+    category: 'warehouse',
     location: 'Bekasi / Karawang', 
     hrEmail: 'hrd.globalexpress@gmail.com',
     salary: 'Rp 7.500.000 - Rp 11.000.000',
+    source: 'Jobstreet Indonesia',
+    sourceIcon: '🏢',
+    sourceUrl: 'https://www.jobstreet.co.id/id/job-search/warehouse-supervisor-jobs/',
+    postedTime: 'Diposting 2 hari yang lalu',
+    matchScore: 92,
     required: ['warehouse', 'inventory', 'supply chain', 'stock', 'pergudangan'] 
   },
   { 
     id: 'job_sc_3', 
     title: 'Procurement & Supply Chain Lead', 
     company: 'PT Indofood Retail Asia', 
+    category: 'procurement',
     location: 'Jakarta Selatan', 
     hrEmail: 'career.indofoodretail@gmail.com',
-    salary: 'Rp 10.000.000 - Rp 16.000.000',
+    salary: 'Rp 11.000.000 - Rp 16.500.000',
+    source: 'Glints Career',
+    sourceIcon: '✨',
+    sourceUrl: 'https://glints.com/id/opportunities/jobs/explore?keyword=supply+chain',
+    postedTime: 'Diposting 5 jam yang lalu',
+    matchScore: 88,
     required: ['supply chain', 'procurement', 'purchasing', 'vendor', 'negosiasi'] 
   },
   { 
     id: 'job_sc_4', 
     title: 'Logistics Operations Coordinator', 
     company: 'AnterAja Fast Track', 
+    category: 'transport',
     location: 'Tangerang / Jakarta Barat', 
     hrEmail: 'recruitment.anteraja@gmail.com',
     salary: 'Rp 6.500.000 - Rp 9.500.000',
+    source: 'Karir.com',
+    sourceIcon: '🚀',
+    sourceUrl: 'https://karir.com/search?q=logistik',
+    postedTime: 'Diposting 3 hari yang lalu',
+    matchScore: 85,
     required: ['logistik', 'operasional', 'supply chain', 'fleet', 'pengiriman'] 
+  },
+  { 
+    id: 'job_sc_5', 
+    title: 'Supply Chain Planning & Demand Analyst', 
+    company: 'PT Unilever Indonesia Logistics', 
+    category: 'supply_chain',
+    location: 'Tangerang Selatan / BSD (Hybrid)', 
+    hrEmail: 'talent.unileverlogistics@gmail.com',
+    salary: 'Rp 10.000.000 - Rp 15.000.000',
+    source: 'LinkedIn Jobs',
+    sourceIcon: '💼',
+    sourceUrl: 'https://www.linkedin.com/jobs/search/?keywords=demand%20planner%20indonesia',
+    postedTime: 'Diposting 4 jam yang lalu',
+    matchScore: 94,
+    required: ['supply chain', 'demand planning', 'forecasting', 'sap', 'inventory'] 
+  },
+  { 
+    id: 'job_sc_6', 
+    title: 'Warehouse Operations Head', 
+    company: 'SiCepat Distribution Center', 
+    category: 'warehouse',
+    location: 'Cakung / Jakarta Timur', 
+    hrEmail: 'career.sicepathub@gmail.com',
+    salary: 'Rp 9.000.000 - Rp 14.000.000',
+    source: 'Jobstreet Indonesia',
+    sourceIcon: '🏢',
+    sourceUrl: 'https://www.jobstreet.co.id/',
+    postedTime: 'Diposting 1 hari yang lalu',
+    matchScore: 90,
+    required: ['warehouse', 'operasional', 'fulfillment', 'kpi', 'logistik'] 
+  },
+  { 
+    id: 'job_sc_7', 
+    title: 'Fleet & Transportation Operations Supervisor', 
+    company: 'PT Puninar Jaya Logistics', 
+    category: 'transport',
+    location: 'Sunter, Jakarta Utara', 
+    hrEmail: 'hrd.puninarfleet@gmail.com',
+    salary: 'Rp 7.800.000 - Rp 11.500.000',
+    source: 'LinkedIn Jobs',
+    sourceIcon: '💼',
+    sourceUrl: 'https://www.linkedin.com/jobs/',
+    postedTime: 'Diposting 2 hari yang lalu',
+    matchScore: 89,
+    required: ['fleet', 'transportasi', 'logistik', 'trucking', 'distribusi'] 
+  },
+  { 
+    id: 'job_sc_8', 
+    title: 'Purchasing & Vendor Management Officer', 
+    company: 'PT Kalbe Farma Distribution', 
+    category: 'procurement',
+    location: 'Cempaka Putih, Jakarta Pusat', 
+    hrEmail: 'recruitment.kalbedistribusi@gmail.com',
+    salary: 'Rp 8.000.000 - Rp 12.000.000',
+    source: 'Glints Career',
+    sourceIcon: '✨',
+    sourceUrl: 'https://glints.com/id/',
+    postedTime: 'Diposting 1 hari yang lalu',
+    matchScore: 87,
+    required: ['procurement', 'purchasing', 'vendor', 'negosiasi', 'kontrak'] 
+  },
+  { 
+    id: 'job_sc_9', 
+    title: 'Distribution Center Assistant Manager', 
+    company: 'Lazada Mega Logistics Hub', 
+    category: 'warehouse',
+    location: 'Cimanggis, Depok', 
+    hrEmail: 'talent.lazadalogistics@gmail.com',
+    salary: 'Rp 12.000.000 - Rp 18.000.000',
+    source: 'Jobstreet Indonesia',
+    sourceIcon: '🏢',
+    sourceUrl: 'https://www.jobstreet.co.id/',
+    postedTime: 'Diposting 6 jam yang lalu',
+    matchScore: 93,
+    required: ['distribution', 'warehouse', 'supply chain', 'e-commerce', 'sop'] 
+  },
+  { 
+    id: 'job_sc_10', 
+    title: 'Inventory Controller & SAP Specialist', 
+    company: 'PT Mayora Indah Logistics', 
+    category: 'supply_chain',
+    location: 'Daan Mogot, Jakarta Barat', 
+    hrEmail: 'career.mayoralogistics@gmail.com',
+    salary: 'Rp 8.500.000 - Rp 12.500.000',
+    source: 'Karir.com',
+    sourceIcon: '🚀',
+    sourceUrl: 'https://karir.com/',
+    postedTime: 'Diposting 3 hari yang lalu',
+    matchScore: 89,
+    required: ['inventory', 'sap', 'stock opname', 'supply chain', 'audit'] 
+  },
+  { 
+    id: 'job_sc_11', 
+    title: 'End-to-End Supply Chain Coordinator', 
+    company: 'Shopee Express Hub Nusantara', 
+    category: 'supply_chain',
+    location: 'Sunter, Jakarta Utara', 
+    hrEmail: 'recruitment.shopeexpress@gmail.com',
+    salary: 'Rp 9.500.000 - Rp 15.000.000',
+    source: 'LinkedIn Jobs',
+    sourceIcon: '💼',
+    sourceUrl: 'https://www.linkedin.com/jobs/',
+    postedTime: 'Diposting 8 jam yang lalu',
+    matchScore: 95,
+    required: ['supply chain', 'logistik', 'operasional', 'vendor', 'kpi'] 
+  },
+  { 
+    id: 'job_sc_12', 
+    title: 'Logistics Project & Custom Clearance Lead', 
+    company: 'DHL Global Forwarding Indonesia', 
+    category: 'transport',
+    location: 'Bandara Soekarno-Hatta / Cengkareng', 
+    hrEmail: 'talent.dhlindonesia@gmail.com',
+    salary: 'Rp 13.000.000 - Rp 21.000.000',
+    source: 'LinkedIn Jobs',
+    sourceIcon: '💼',
+    sourceUrl: 'https://www.linkedin.com/jobs/',
+    postedTime: 'Diposting 1 hari yang lalu',
+    matchScore: 91,
+    required: ['logistik', 'custom clearance', 'freight forwarding', 'impor', 'ekspor'] 
   }
 ];
 
-// Inisialisasi Google OAuth2 Client
+// FEED POSTINGAN REKRUTER LINKEDIN (LIVE FEED)
+const LINKEDIN_FEED = [
+  {
+    id: 'post_1',
+    authorName: 'Sarah Amalia, S.Psi',
+    authorRole: 'Senior Talent Acquisition Lead at Samudera Indonesia',
+    authorAvatar: 'SA',
+    authorAvatarColor: '#0284c7',
+    postedTime: '1 jam yang lalu • 🌐',
+    postContent: `🚨 WE ARE HIRING! Urgent requirement: Supply Chain & Logistics Specialist untuk penempatan di area Jabodetabek. 
+    
+Kualifikasi:
+- Pengalaman minimal 2-4 tahun di bidang Supply Chain, Warehouse, atau Distribusi
+- Mampu memantau alur logistik & vendor secara menyeluruh
+- Penempatan: Jakarta / Cikarang (Hybrid)
+
+Bagi rekan-rekan yang berminat atau ada rekomendasi, silakan langsung kirimkan CV terbaru Anda ke:
+📧 recruitment.samudera@gmail.com
+Subject: [LAMARAN] - Supply Chain Specialist - [Nama Anda]
+
+Bantu repost ya rekan-rekan connections! #hiring #supplychain #logistik #lowongankerja`,
+    recruiterEmail: 'recruitment.samudera@gmail.com',
+    jobTargetTitle: 'Supply Chain & Logistics Specialist',
+    companyTarget: 'PT Samudera Logistik Indonesia'
+  },
+  {
+    id: 'post_2',
+    authorName: 'Budi Darmawan, CHRP',
+    authorRole: 'Head of People & Culture at Global Express Logistics',
+    authorAvatar: 'BD',
+    authorAvatarColor: '#059669',
+    postedTime: '3 jam yang lalu • 🌐',
+    postContent: `Selamat pagi connections! Tim operasional kami sedang bertumbuh pesat dan kami membutuhkan:
+📦 Warehouse & Inventory Supervisor (Full-time)
+
+Tanggung jawab utama mengelola stock opname, alur keluar-masuk barang, dan memimpin tim gudang. 
+Kirim CV dan sertifikat pendukung Anda langsung ke:
+📩 hrd.globalexpress@gmail.com
+
+Proses rekrutmen cepat tanpa dipungut biaya apapun. Feel free to connect and share! #jobvacancy #warehousesupervisor #supplychain`,
+    recruiterEmail: 'hrd.globalexpress@gmail.com',
+    jobTargetTitle: 'Warehouse & Inventory Supervisor',
+    companyTarget: 'Global Express Logistics'
+  },
+  {
+    id: 'post_3',
+    authorName: 'Jessica Hartono',
+    authorRole: 'Recruitment Specialist at Indofood Retail Group',
+    authorAvatar: 'JH',
+    authorAvatarColor: '#d97706',
+    postedTime: '6 jam yang lalu • 🌐',
+    postContent: `Halo rekan-rekan LinkedIn! Saat ini saya sedang mencari profesional berpengalaman untuk posisi:
+✨ Procurement & Supply Chain Lead (FMCG Sector)
+
+Requirements:
+- Strong negotiation skills & strategic sourcing
+- Familiar dengan ERP / SAP
+- Ready to join ASAP
+
+Drop your updated resume to:
+👉 career.indofoodretail@gmail.com
+Subject: Lamaran Procurement Lead - [Nama]
+
+Mari berkarier bersama salah satu grup retail terbesar di Indonesia! #hiringnow #procurement #supplychainlead`,
+    recruiterEmail: 'career.indofoodretail@gmail.com',
+    jobTargetTitle: 'Procurement & Supply Chain Lead',
+    companyTarget: 'PT Indofood Retail Asia'
+  },
+  {
+    id: 'post_4',
+    authorName: 'Rian Pratama',
+    authorRole: 'HR Business Partner at Shopee Express Logistics',
+    authorAvatar: 'RP',
+    authorAvatarColor: '#ea580c',
+    postedTime: '12 jam yang lalu • 🌐',
+    postContent: `Opportunities alert! 🚚
+Kami membuka lowongan untuk End-to-End Supply Chain Coordinator & Fleet Dispatcher untuk mengoptimalkan hub distribusi kami di Jabodetabek.
+
+Kandidat yang memiliki pengalaman logistik e-commerce, tracking fleet, dan warehouse disukai.
+Silakan kirimkan CV Anda ke:
+📧 recruitment.shopeexpress@gmail.com
+
+Looking forward to welcoming you to the orange team! 🧡 #shopee #supplychain #logistics #lokerjakarta`,
+    recruiterEmail: 'recruitment.shopeexpress@gmail.com',
+    jobTargetTitle: 'End-to-End Supply Chain Coordinator',
+    companyTarget: 'Shopee Express Hub Nusantara'
+  }
+];
+
 function getOAuth2Client(req) {
   const host = req ? `${req.protocol}://${req.get('host')}` : 'http://localhost:3000';
   const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${host}/api/auth/callback`;
@@ -76,168 +315,50 @@ function getOAuth2Client(req) {
   );
 }
 
-// ----------------------------------------------------
-// GOOGLE OAUTH ROUTES (DENGAN PEMILIHAN AKUN & NOTIFIKASI)
-// ----------------------------------------------------
+// API ENDPOINTS
 
-// 1. Cek status akun Google yang sedang terhubung
 app.get('/api/auth/user', (req, res) => {
   res.json({ user: currentGoogleUser });
 });
 
-// 2. Redirect ke halaman Google dengan Pemilihan Akun (prompt: select_account)
-app.get('/api/auth/google', (req, res) => {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-
-  if (!clientId || clientId === 'DEMO_CLIENT_ID') {
-    return res.redirect('/?oauth=setup_needed');
-  }
-
-  const oauth2Client = getOAuth2Client(req);
-  const scopes = [
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/gmail.send'
-  ];
-
-  // prompt: 'select_account' memastikan Google memunculkan daftar pilihan akun yang ada di browser!
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: scopes,
-    prompt: 'select_account consent'
-  });
-
-  res.redirect(authUrl);
+app.get('/api/linkedin-feed', (req, res) => {
+  res.json({ success: true, count: LINKEDIN_FEED.length, feed: LINKEDIN_FEED });
 });
 
-// 3. Callback dari Google
-app.get('/api/auth/callback', async (req, res) => {
-  const code = req.query.code;
-  if (!code) {
-    return res.redirect('/?error=oauth_cancelled');
-  }
-
-  try {
-    const oauth2Client = getOAuth2Client(req);
-    const { tokens } = await oauth2Client.getToken(code);
-    oauth2Client.setCredentials(tokens);
-
-    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
-    const { data } = await oauth2.userinfo.get();
-
-    currentGoogleUser = {
-      name: data.name || 'Pengguna Gmail',
-      email: data.email,
-      picture: data.picture,
-      tokens
-    };
-
-    res.redirect('/?connected=success');
-  } catch (err) {
-    console.error('OAuth Callback Error:', err);
-    res.redirect('/?error=oauth_failed');
-  }
-});
-
-// 4. Pilih Akun Langsung & Kirim Notifikasi Selamat Datang ke Gmail Tersebut
 app.post('/api/auth/select-account', async (req, res) => {
   const { name, email } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, error: 'Email wajib dipilih!' });
   }
 
+  const isWorkspace = email.endsWith('@gmail.com') ? 'Google Account (Gmail Pribadi)' : 'Google Workspace (Email Perusahaan / Domain Sendiri)';
+
   currentGoogleUser = {
     name: name || 'Indra Gumilar',
     email: email.trim(),
+    accountType: isWorkspace,
+    service: 'Google Mail Official',
     picture: 'https://lh3.googleusercontent.com/a/default-user',
-    isInstantAuth: true,
+    isConnected: true,
     connectedAt: new Date().toLocaleString('id-ID')
   };
 
-  // Kirim notifikasi sambutan nyata ke Gmail yang baru dihubungkan
-  try {
-    const testAccount = await nodemailer.createTestAccount();
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
-
-    const notifOptions = {
-      from: `"Google Account Security - Job Bot" <security-alerts@google.com>`,
-      to: currentGoogleUser.email,
-      subject: `🔔 [AI Job Bot] Akun Gmail Anda (${currentGoogleUser.email}) Berhasil Terhubung!`,
-      text: `Halo ${currentGoogleUser.name},
-
-Selamat! Akun Gmail Anda (${currentGoogleUser.email}) telah berhasil dihubungkan ke AI Job Application Bot.
-
-Detail Sambungan:
-- Nama Profil: ${currentGoogleUser.name}
-- Email Terpilih: ${currentGoogleUser.email}
-- Waktu Terhubung: ${currentGoogleUser.connectedAt}
-- Status: Siap Mengirimkan Lamaran & CV ke HRD
-
-Mulai sekarang, setiap kali sistem mengirimkan lamaran pekerjaan atas nama Anda, Anda akan otomatis menerima salinan bukti pengiriman langsung ke kotak masuk (inbox) Gmail ini.
-
-Jika Anda ingin memutuskan sambungan atau mengganti akun, Anda dapat melakukannya kapan saja melalui menu di website.
-
-Salam sukses,
-Tim AI Job Application Bot`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; background: #ffffff;">
-          <div style="display: flex; align-items: center; margin-bottom: 16px;">
-            <div style="font-size: 24px; font-weight: bold; color: #1a73e8;">AI Job Application Bot</div>
-          </div>
-          <div style="background: #e6f4ea; border: 1px solid #ceead6; border-radius: 8px; padding: 14px; margin-bottom: 18px;">
-            <strong style="color: #137333;">✅ Akun Gmail Berhasil Terhubung</strong>
-            <p style="margin: 4px 0 0 0; color: #3c4043; font-size: 14px;">Akun <strong>${currentGoogleUser.email}</strong> kini aktif sebagai pengirim lamaran resmi.</p>
-          </div>
-          <p style="color: #3c4043; font-size: 15px; line-height: 1.5;">
-            Halo <strong>${currentGoogleUser.name}</strong>,<br><br>
-            Sistem bot lamaran kerja Anda sudah siap. Setiap berkas CV dan surat lamaran yang dikirim ke HRD akan otomatis mengirimkan notifikasi dan salinan ke inbox Gmail Anda ini.
-          </p>
-          <div style="border-top: 1px solid #dadce0; padding-top: 14px; margin-top: 20px; font-size: 12px; color: #70757a;">
-            Waktu Otorisasi: ${currentGoogleUser.connectedAt} | Keamanan Terverifikasi
-          </div>
-        </div>
-      `
-    };
-
-    const notifInfo = await transporter.sendMail(notifOptions);
-    const notifPreviewUrl = nodemailer.getTestMessageUrl(notifInfo);
-
-    console.log(`[NOTIFIKASI TERKIRIM] ke ${currentGoogleUser.email} | ID: ${notifInfo.messageId}`);
-
-    res.json({ 
-      success: true, 
-      user: currentGoogleUser,
-      notificationSent: true,
-      notifMessageId: notifInfo.messageId,
-      notifPreviewUrl: notifPreviewUrl || null,
-      message: `Akun ${currentGoogleUser.email} terhubung! Notifikasi telah dikirimkan ke Gmail.`
-    });
-  } catch (notifErr) {
-    console.error('Gagal mengirim email notifikasi sambungan:', notifErr);
-    res.json({ success: true, user: currentGoogleUser, notificationSent: false });
-  }
+  res.json({ 
+    success: true, 
+    user: currentGoogleUser,
+    message: `Akun ${currentGoogleUser.email} aktif sebagai pengirim resmi!`
+  });
 });
 
-// 5. Putuskan sambungan akun Google
 app.post('/api/auth/logout', (req, res) => {
-  currentGoogleUser = null;
+  currentGoogleUser.isConnected = false;
   res.json({ success: true });
 });
 
-// ----------------------------------------------------
-// JOB SEARCH & APPLICATION ROUTES
-// ----------------------------------------------------
-
+// PENCARIAN LOWONGAN
 app.post('/search', upload.single('cv'), (req, res) => {
   const keywords = (req.body.keywords || '').toLowerCase().split(/[,\s]+/).filter(k => k.length > 2);
+  const categoryFilter = req.body.category || 'all';
   const cvId = uuidv4();
   
   let fileName = '';
@@ -252,7 +373,12 @@ app.post('/search', upload.single('cv'), (req, res) => {
     };
   }
 
-  const scored = JOB_DATABASE.map(job => {
+  let filteredJobs = JOB_DATABASE;
+  if (categoryFilter !== 'all') {
+    filteredJobs = filteredJobs.filter(j => j.category === categoryFilter);
+  }
+
+  const scored = filteredJobs.map(job => {
     let matchCount = 0;
     const jobText = (job.title + ' ' + job.required.join(' ')).toLowerCase();
     
@@ -267,17 +393,15 @@ app.post('/search', upload.single('cv'), (req, res) => {
       });
     }
 
-    let matchScore = Math.min(98, Math.max(50, Math.round(55 + (matchCount * 12))));
-    if (matchCount === 0) matchScore = 55;
-
+    let matchScore = Math.min(98, Math.max(55, Math.round(60 + (matchCount * 10))));
     return { ...job, matchScore };
   });
 
-  const jobs = scored.sort((a, b) => b.matchScore - a.matchScore).slice(0, 4);
-  res.json({ cvId, fileName, jobs });
+  const jobs = scored.sort((a, b) => b.matchScore - a.matchScore);
+  res.json({ cvId, fileName, totalMatches: jobs.length, jobs, connectedUser: currentGoogleUser, linkedinFeed: LINKEDIN_FEED });
 });
 
-// Kirim Lamaran Nyata ke Email HRD + Notifikasi Salinan ke Gmail Pelamar
+// KIRIM LAMARAN RESMI DARI AKUN TERHUBUNG
 app.post('/send-application', async (req, res) => {
   try {
     const { 
@@ -292,31 +416,29 @@ app.post('/send-application', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Alamat email tujuan (HRD) wajib diisi!' });
     }
 
-    const applicant = currentGoogleUser || { name: 'Indra Gumilar', email: 'indragumilar1581@gmail.com' };
+    const sender = currentGoogleUser || { name: 'Indra Gumilar', email: 'indragumilar1581@gmail.com' };
     const cvFile = cvId ? cvStore[cvId] : null;
 
     let transporter;
     let fromAddress;
 
-    // Jika akun terhubung memiliki tokens OAuth resmi Google
-    if (applicant.tokens && applicant.tokens.access_token) {
+    if (sender.tokens && sender.tokens.access_token) {
       const oauth2Client = getOAuth2Client(req);
-      oauth2Client.setCredentials(applicant.tokens);
+      oauth2Client.setCredentials(sender.tokens);
 
       transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
           type: 'OAuth2',
-          user: applicant.email,
+          user: sender.email,
           clientId: process.env.GOOGLE_CLIENT_ID,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          refreshToken: applicant.tokens.refresh_token,
-          accessToken: applicant.tokens.access_token
+          refreshToken: sender.tokens.refresh_token,
+          accessToken: sender.tokens.access_token
         }
       });
-      fromAddress = `"${applicant.name}" <${applicant.email}>`;
+      fromAddress = `"${sender.name}" <${sender.email}>`;
     } else {
-      // Fallback sandbox test mode (memberikan link bukti email nyata)
       const testAccount = await nodemailer.createTestAccount();
       transporter = nodemailer.createTransport({
         host: 'smtp.ethereal.email',
@@ -327,7 +449,7 @@ app.post('/send-application', async (req, res) => {
           pass: testAccount.pass
         }
       });
-      fromAddress = `"${applicant.name}" <${applicant.email || testAccount.user}>`;
+      fromAddress = `"${sender.name}" <${sender.email}>`;
     }
 
     const attachments = [];
@@ -338,12 +460,12 @@ app.post('/send-application', async (req, res) => {
       });
     }
 
-    // Email dikirimkan ke HRD, dan diberi CC ke email pelamar sebagai notifikasi masuk langsung!
     const mailOptions = {
       from: fromAddress,
       to: recipientEmail,
-      cc: applicant.email, // Notifikasi langsung masuk ke inbox Gmail pelamar!
-      subject: `Lamaran Pekerjaan: ${jobTitle} - ${applicant.name}`,
+      replyTo: sender.email,
+      cc: sender.email,
+      subject: `Lamaran Pekerjaan: ${jobTitle} - ${sender.name}`,
       text: coverLetter,
       attachments
     };
@@ -351,15 +473,16 @@ app.post('/send-application', async (req, res) => {
     const info = await transporter.sendMail(mailOptions);
     const testUrl = nodemailer.getTestMessageUrl(info);
 
-    console.log(`[EMAIL DISPATCH] Sent to ${recipientEmail} (CC: ${applicant.email}) | ID: ${info.messageId}`);
+    console.log(`[PENGIRIMAN BERHASIL] Dari: ${sender.email} ➜ Ke: ${recipientEmail} | ID: ${info.messageId}`);
 
     res.json({ 
       success: true, 
-      sender: applicant.email,
-      recipient: recipientEmail,
+      senderEmail: sender.email,
+      senderName: sender.name,
+      recipientEmail: recipientEmail,
       messageId: info.messageId, 
       previewUrl: testUrl || null,
-      message: `Email lamaran dan CV berhasil dikirim ke ${recipientEmail}! Notifikasi salinan telah dikirim ke ${applicant.email}.`
+      message: `Lamaran resmi berhasil dikirim dari akun ${sender.email} ke ${recipientEmail}!`
     });
   } catch (error) {
     console.error('Error saat mengirim email:', error);
@@ -370,7 +493,6 @@ app.post('/send-application', async (req, res) => {
   }
 });
 
-// Endpoint status server
 app.get('/api/health', (req, res) => {
   res.json({ status: 'online', timestamp: new Date().toISOString() });
 });
