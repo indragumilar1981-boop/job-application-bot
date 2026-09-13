@@ -1,6 +1,24 @@
+const fs = require('fs');
+const path = require('path');
+
+// Muat variabel lingkungan lokal dari .env jika ada
+if (fs.existsSync(path.join(__dirname, '.env'))) {
+  try {
+    const envFile = fs.readFileSync(path.join(__dirname, '.env'), 'utf8');
+    envFile.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [k, ...v] = trimmed.split('=');
+        if (k && v.length) process.env[k.trim()] = v.join('=').trim();
+      }
+    });
+  } catch (e) {
+    console.error('Gagal membaca .env:', e);
+  }
+}
+
 const express = require('express');
 const multer = require('multer');
-const path = require('path');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const { google } = require('googleapis');
@@ -23,7 +41,7 @@ const cvStore = {};
 // Akun Google yang sedang terhubung
 let currentGoogleUser = {
   name: 'Indra Gumilar',
-  email: 'indragumilar1581@gmail.com',
+  email: process.env.GMAIL_USER || 'gumilar.indra@gmail.com',
   accountType: 'Google Account (Gmail Pribadi)',
   appPassword: process.env.GMAIL_APP_PASSWORD || '',
   service: 'Google Mail (SMTP / API)',
