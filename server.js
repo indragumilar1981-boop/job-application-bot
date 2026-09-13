@@ -462,6 +462,94 @@ app.post('/search', upload.single('cv'), (req, res) => {
 });
 
 // PENGIRIMAN EMAIL RESMI GMAIL: TERCATAT DI FOLDER "PESAN TERKIRIM" (SENT)
+// Generator Surat Lamaran (Cover Letter) Otomatis Berdasarkan Posisi & Perusahaan
+function generateTailoredCoverLetter(jobTitle, company, senderName, senderEmail, sourceName = 'LinkedIn / Portal Karir') {
+  const cleanTitle = jobTitle || 'Posisi Terkait';
+  const cleanCompany = company || 'Perusahaan';
+  const cleanName = senderName || 'Indra Gumilar';
+  const cleanEmail = senderEmail || 'gumilar.indra@gmail.com';
+
+  // Analisis kompetensi dan pengalaman yang disesuaikan dengan posisi lowongan
+  let specialization = 'manajemen operasional logistik, tata kelola pergudangan, serta koordinasi rantai pasok (supply chain)';
+  let keyHighlights = 'pengelolaan alur keluar-masuk barang, akurasi stok, kepemimpinan tim lapangan, dan efisiensi biaya operasional';
+
+  if (/fleet|transport|sopir|driver|armada|kendaraan/i.test(cleanTitle)) {
+    specialization = 'manajemen operasional armada (fleet management), koordinasi distribusi rute logistik, dan pengelolaan tim driver';
+    keyHighlights = 'perencanaan utilisasi kendaraan secara efisien, pemeliharaan armada, monitoring ketepatan waktu pengiriman (SLA), serta kepatuhan standar keselamatan kerja';
+  } else if (/warehouse|gudang|inventory|stock/i.test(cleanTitle)) {
+    specialization = 'manajemen pergudangan (warehouse operations), akurasi stock opname, dan sistem manajemen pergudangan (WMS)';
+    keyHighlights = 'penerapan 5S di gudang, pengawasan alur inbound-outbound barang, pemenuhan order tepat waktu (fulfillment), serta minimalisasi selisih stok (shrinkage)';
+  } else if (/procurement|purchasing|sourcing|vendor/i.test(cleanTitle)) {
+    specialization = 'pengadaan barang & jasa (strategic procurement), negosiasi vendor, dan pengendalian anggaran (cost-efficiency)';
+    keyHighlights = 'evaluasi kinerja pemasok (vendor rating), pengadaan material tepat waktu, analisis perbandingan harga pasar, serta kepatuhan kontrak kerja sama';
+  } else if (/supply chain|demand|planning|logistik/i.test(cleanTitle)) {
+    specialization = 'perencanaan rantai pasok terintegrasi (end-to-end supply chain planning), manajemen logistik, dan forecasting';
+    keyHighlights = 'sinkronisasi demand dan supply, koordinasi lintas divisi (gudang, logistik, pengadaan), pemanfaatan sistem ERP/SAP, dan optimalisasi siklus persediaan';
+  }
+
+  const plainText = `Kepada Yth.
+Tim Rekrutmen / HRD ${cleanCompany}
+Di tempat
+
+Dengan hormat,
+
+Sehubungan dengan informasi lowongan pekerjaan untuk posisi ${cleanTitle} di ${cleanCompany} yang saya peroleh melalui ${sourceName}, saya yang bertanda tangan di bawah ini:
+
+Nama           : ${cleanName}
+Email          : ${cleanEmail}
+Posisi Dilamar : ${cleanTitle}
+
+Bermaksud untuk mengajukan surat lamaran kerja dan bergabung sebagai bagian dari tim profesional di ${cleanCompany}. Saya memiliki latar belakang pengalaman kerja yang solid dan dedikasi tinggi di bidang ${specialization}.
+
+Selama berkarier, saya terbiasa memimpin dan mengoptimalkan ${keyHighlights}, serta mampu bekerja di bawah target ketat demi mendukung kelancaran dan profitabilitas operasional perusahaan.
+
+Sebagai bahan pertimbangan Bapak/Ibu, bersama email ini saya lampirkan berkas Curriculum Vitae (CV) terbaru yang memuat rincian kualifikasi, pengalaman kerja, serta rekam jejak profesional saya.
+
+Besar harapan saya untuk diberikan kesempatan mengikuti tahapan seleksi atau sesi wawancara guna mendiskusikan kontribusi nyata yang dapat saya berikan bagi kemajuan ${cleanCompany}.
+
+Atas perhatian, waktu, dan kesempatan yang Bapak/Ibu berikan, saya ucapkan terima kasih yang sebesar-besarnya.
+
+Hormat saya,
+
+${cleanName}
+${cleanEmail}`;
+
+  const htmlContent = `
+    <div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b; max-width: 650px;">
+      <p>Kepada Yth.<br>
+      <strong>Tim Rekrutmen / HRD ${cleanCompany}</strong><br>
+      Di tempat</p>
+
+      <p>Dengan hormat,</p>
+
+      <p>Sehubungan dengan informasi lowongan pekerjaan untuk posisi <strong>${cleanTitle}</strong> di <strong>${cleanCompany}</strong> yang saya peroleh melalui <em>${sourceName}</em>, saya yang bertanda tangan di bawah ini:</p>
+
+      <table style="margin: 12px 0; border-collapse: collapse; font-size: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; width: 100%;">
+        <tr><td style="padding: 6px 12px; font-weight: bold; width: 140px; color: #475569;">Nama Lengkap</td><td style="padding: 6px 12px;">: <strong>${cleanName}</strong></td></tr>
+        <tr><td style="padding: 6px 12px; font-weight: bold; color: #475569;">Email Kontak</td><td style="padding: 6px 12px;">: <a href="mailto:${cleanEmail}" style="color: #2563eb; text-decoration: none;">${cleanEmail}</a></td></tr>
+        <tr><td style="padding: 6px 12px; font-weight: bold; color: #475569;">Posisi Dilamar</td><td style="padding: 6px 12px;">: <span style="background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${cleanTitle}</span></td></tr>
+      </table>
+
+      <p>Bermaksud untuk mengajukan diri guna berkontribusi secara profesional pada posisi tersebut. Saya memiliki latar belakang pengalaman kerja yang solid dan dedikasi tinggi di bidang <strong>${specialization}</strong>.</p>
+
+      <p>Selama berkarier, saya terbiasa mengelola dan mengoptimalkan <strong>${keyHighlights}</strong>, serta memiliki kemampuan pemecahan masalah yang adaptif dan kepemimpinan tim yang siap bekerja secara kolaboratif demi mendukung pertumbuhan <strong>${cleanCompany}</strong>.</p>
+
+      <p>Sebagai bahan pertimbangan Bapak/Ibu lebih lanjut, bersama email ini saya lampirkan dokumen <strong>Curriculum Vitae (CV)</strong> terbaru saya.</p>
+
+      <p>Besar harapan saya untuk diberikan kesempatan menghadiri sesi wawancara guna mendiskusikan kualifikasi saya secara lebih mendalam. Atas perhatian, waktu, dan kesempatan yang Bapak/Ibu berikan, saya ucapkan terima kasih.</p>
+
+      <p style="margin-top: 25px; border-top: 1px solid #e2e8f0; padding-top: 15px;">
+        Hormat saya,<br><br>
+        <strong>${cleanName}</strong><br>
+        <span style="color: #64748b; font-size: 13px;">${cleanEmail}</span>
+      </p>
+    </div>
+  `;
+
+  return { plainText, htmlContent };
+}
+
+// PENGIRIMAN EMAIL RESMI GMAIL: TERCATAT DI FOLDER "PESAN TERKIRIM" (SENT)
 app.post('/send-application', async (req, res) => {
   try {
     const { 
@@ -477,9 +565,26 @@ app.post('/send-application', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Alamat email tujuan (HRD) wajib diisi!' });
     }
 
-    const sender = currentGoogleUser || { name: 'Indra Gumilar', email: 'indragumilar1581@gmail.com' };
+    const sender = currentGoogleUser || { name: 'Indra Gumilar', email: 'gumilar.indra@gmail.com' };
     const cvFile = cvId ? cvStore[cvId] : null;
     const appPassword = userAppPassword || sender.appPassword || process.env.GMAIL_APP_PASSWORD;
+
+    // GENERATE ISI LAMARAN OTOMATIS JIKA KOSONG ATAU SESUAIKAN POSISI
+    const generatedLetter = generateTailoredCoverLetter(
+      jobTitle, 
+      company, 
+      sender.name, 
+      sender.email, 
+      'LinkedIn / Feed Rekruter'
+    );
+
+    const finalPlainText = (coverLetter && coverLetter.trim().length > 20) 
+      ? coverLetter.trim() 
+      : generatedLetter.plainText;
+
+    const finalHtmlContent = (coverLetter && coverLetter.trim().length > 20)
+      ? `<div style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; white-space: pre-line;">${coverLetter.trim()}</div>`
+      : generatedLetter.htmlContent;
 
     let transporter;
     let fromAddress;
@@ -535,7 +640,7 @@ app.post('/send-application', async (req, res) => {
     const attachments = [];
     if (cvFile && cvFile.buffer) {
       attachments.push({
-        filename: cvFile.originalName || 'Curriculum_Vitae.pdf',
+        filename: cvFile.originalName || 'Curriculum_Vitae_Indra_Gumilar.pdf',
         content: cvFile.buffer
       });
     }
@@ -546,12 +651,15 @@ app.post('/send-application', async (req, res) => {
       replyTo: sender.email,
       cc: sender.email, // Tembusan konfirmasi ke Gmail pengguna
       subject: `Lamaran Pekerjaan: ${jobTitle} - ${sender.name}`,
-      text: coverLetter,
+      text: finalPlainText,
+      html: finalHtmlContent,
       attachments
     };
 
     const info = await transporter.sendMail(mailOptions);
     const testUrl = isRealGmailSent ? null : nodemailer.getTestMessageUrl(info);
+
+    console.log(`[PENGIRIMAN BERHASIL] Dari: ${sender.email} ➜ Ke: ${recipientEmail} | SentFolder: ${isRealGmailSent} | Posisi: ${jobTitle} | ID: ${info.messageId}`);
 
     console.log(`[PENGIRIMAN BERHASIL] Dari: ${sender.email} ➜ Ke: ${recipientEmail} | SentFolder: ${isRealGmailSent} | ID: ${info.messageId}`);
 

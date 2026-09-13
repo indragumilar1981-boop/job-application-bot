@@ -949,22 +949,74 @@
         `).join('')}
       `;
 
-      // Event listener lamar cepat dari feed LinkedIn
-      document.querySelectorAll('.btn-apply-linkedin-recruiter').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const postId = btn.dataset.id;
-          const post = linkedinPosts.find(p => p.id === postId);
-          const jobObj = {
-            id: post.id,
-            title: post.jobTargetTitle,
-            company: post.companyTarget,
-            hrEmail: post.recruiterEmail,
-            source: 'Feed Postingan LinkedIn'
-          };
-          await sendApplicationEmail(jobObj);
-        });
-      });
+    // GENERATOR SURAT LAMARAN OTOMATIS BERDASARKAN POSISI & PERUSAHAAN
+    function buildPositionTailoredLetter(jobTitle, company, senderName, senderEmail) {
+      const cleanTitle = jobTitle || 'Posisi Terkait';
+      const cleanCompany = company || 'Perusahaan';
+      const cleanName = senderName || currentUser.name || 'Indra Gumilar';
+      const cleanEmail = senderEmail || currentUser.email || 'gumilar.indra@gmail.com';
+
+      let specialization = 'manajemen operasional logistik, tata kelola pergudangan, serta koordinasi rantai pasok (supply chain)';
+      let keyHighlights = 'pengelolaan alur keluar-masuk barang, akurasi stok, kepemimpinan tim lapangan, dan efisiensi biaya operasional';
+
+      if (/fleet|transport|sopir|driver|armada|kendaraan/i.test(cleanTitle)) {
+        specialization = 'manajemen operasional armada (fleet management), koordinasi distribusi rute logistik, dan pengelolaan tim driver';
+        keyHighlights = 'perencanaan utilisasi kendaraan secara efisien, pemeliharaan armada, monitoring ketepatan waktu pengiriman (SLA), serta kepatuhan standar keselamatan kerja';
+      } else if (/warehouse|gudang|inventory|stock/i.test(cleanTitle)) {
+        specialization = 'manajemen pergudangan (warehouse operations), akurasi stock opname, dan sistem manajemen pergudangan (WMS)';
+        keyHighlights = 'penerapan 5S di gudang, pengawasan alur inbound-outbound barang, pemenuhan order tepat waktu (fulfillment), serta minimalisasi selisih stok (shrinkage)';
+      } else if (/procurement|purchasing|sourcing|vendor/i.test(cleanTitle)) {
+        specialization = 'pengadaan barang & jasa (strategic procurement), negosiasi vendor, dan pengendalian anggaran (cost-efficiency)';
+        keyHighlights = 'evaluasi kinerja pemasok (vendor rating), pengadaan material tepat waktu, analisis perbandingan harga pasar, serta kepatuhan kontrak kerja sama';
+      } else if (/supply chain|demand|planning|logistik/i.test(cleanTitle)) {
+        specialization = 'perencanaan rantai pasok terintegrasi (end-to-end supply chain planning), manajemen logistik, dan forecasting';
+        keyHighlights = 'sinkronisasi demand dan supply, koordinasi lintas divisi (gudang, logistik, pengadaan), pemanfaatan sistem ERP/SAP, dan optimalisasi siklus persediaan';
+      }
+
+      return `Kepada Yth.
+Tim Rekrutmen / HRD ${cleanCompany}
+Di tempat
+
+Dengan hormat,
+
+Sehubungan dengan informasi lowongan pekerjaan untuk posisi ${cleanTitle} di ${cleanCompany}, saya yang bertanda tangan di bawah ini:
+
+Nama           : ${cleanName}
+Email          : ${cleanEmail}
+Posisi Dilamar : ${cleanTitle}
+
+Bermaksud untuk mengajukan surat lamaran kerja dan bergabung sebagai bagian dari tim profesional di ${cleanCompany}. Saya memiliki latar belakang pengalaman kerja yang solid dan dedikasi tinggi di bidang ${specialization}.
+
+Selama berkarier, saya terbiasa memimpin dan mengoptimalkan ${keyHighlights}, serta mampu bekerja di bawah target ketat demi mendukung kelancaran dan profitabilitas operasional perusahaan.
+
+Sebagai bahan pertimbangan Bapak/Ibu, bersama email ini saya lampirkan berkas Curriculum Vitae (CV) terbaru yang memuat rincian kualifikasi, pengalaman kerja, serta rekam jejak profesional saya.
+
+Besar harapan saya untuk diberikan kesempatan mengikuti tahapan seleksi atau sesi wawancara guna mendiskusikan kontribusi nyata yang dapat saya berikan bagi kemajuan ${cleanCompany}.
+
+Atas perhatian, waktu, dan kesempatan yang Bapak/Ibu berikan, saya ucapkan terima kasih yang sebesar-besarnya.
+
+Hormat saya,
+
+${cleanName}
+${cleanEmail}`;
     }
+
+    // Event listener lamar cepat dari feed LinkedIn
+    document.querySelectorAll('.btn-apply-linkedin-recruiter').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const postId = btn.dataset.id;
+        const post = linkedinPosts.find(p => p.id === postId);
+        const jobObj = {
+          id: post.id,
+          title: post.jobTargetTitle,
+          company: post.companyTarget,
+          hrEmail: post.recruiterEmail,
+          source: 'Feed Postingan LinkedIn'
+        };
+        const tailoredLetter = buildPositionTailoredLetter(jobObj.title, jobObj.company, currentUser.name, currentUser.email);
+        await sendApplicationEmail(jobObj, tailoredLetter);
+      });
+    });
 
     function attachJobCardEvents(jobs) {
       document.querySelectorAll('.btn-preview-letter').forEach(btn => {
@@ -981,41 +1033,21 @@
           activeJob = jobs.find(j => j.id === jobId);
           const customEmail = document.getElementById(`email-${jobId}`).value;
           activeJob.hrEmail = customEmail;
-          await sendApplicationEmail(activeJob);
+          const tailoredLetter = buildPositionTailoredLetter(activeJob.title, activeJob.company, currentUser.name, currentUser.email);
+          await sendApplicationEmail(activeJob, tailoredLetter);
         });
       });
     }
 
     function openCoverLetterModal(job) {
       const name = currentUser.name || 'Indra Gumilar';
-      const email = currentUser.email || 'indragumilar1581@gmail.com';
+      const email = currentUser.email || 'gumilar.indra@gmail.com';
       const customEmail = document.getElementById(`email-${job.id}`) ? document.getElementById(`email-${job.id}`).value : job.hrEmail;
       job.hrEmail = customEmail;
 
       if (modalSenderEmail) modalSenderEmail.textContent = email;
 
-      coverLetterText.value = `Kepada Yth.
-Tim Rekrutmen / HRD ${job.company}
-Di tempat
-
-Dengan hormat,
-
-Sehubungan dengan informasi lowongan pekerjaan untuk posisi ${job.title} di ${job.company} yang saya peroleh melalui ${job.source || 'LinkedIn / portal rekrutmen'}, saya yang bertanda tangan di bawah ini:
-
-Nama   : ${name}
-Email  : ${email}
-
-Menyatakan ketertarikan yang mendalam untuk dapat berkontribusi secara profesional pada posisi tersebut. Berbekal pengalaman kerja di bidang yang relevan, dedikasi tinggi, serta pemahaman operasional yang solid, saya yakin dapat memberikan dampak positif bagi kemajuan ${job.company}.
-
-Bersama email ini, saya lampirkan dokumen Curriculum Vitae (${currentCvFileName}) lengkap untuk bahan pertimbangan Bapak/Ibu lebih lanjut.
-
-Besar harapan saya untuk diberikan kesempatan menghadiri sesi wawancara guna mendiskusikan kualifikasi saya secara lebih mendalam. Atas perhatian dan kesempatan yang diberikan, saya ucapkan terima kasih.
-
-Hormat saya,
-
-${name}
-${email}`;
-
+      coverLetterText.value = buildPositionTailoredLetter(job.title, job.company, name, email);
       modal.classList.remove('hidden');
     }
 
@@ -1046,11 +1078,16 @@ ${email}`;
         `;
       }
 
+      // Pastikan selalu ada surat lamaran yang terisi dan disesuaikan
+      const finalLetter = (customCoverLetter && customCoverLetter.trim().length > 20)
+        ? customCoverLetter.trim()
+        : buildPositionTailoredLetter(job.title, job.company, currentUser.name, currentUser.email);
+
       const payload = {
         recipientEmail: job.hrEmail,
         jobTitle: job.title,
         company: job.company,
-        coverLetter: customCoverLetter,
+        coverLetter: finalLetter,
         cvId: currentCvId,
         userAppPassword: localStorage.getItem('gmail_app_password') || ''
       };
