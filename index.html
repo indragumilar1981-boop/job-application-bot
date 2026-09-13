@@ -851,12 +851,18 @@
         formData.append('cv', cvFile);
         formData.append('keywords', keywords);
 
-        const res = await fetch('/search', { method: 'POST', body: formData });
+        let res = await fetch('/api/search', { method: 'POST', body: formData });
+        if (res.status === 404) {
+          res = await fetch('/search', { method: 'POST', body: formData });
+        }
         if (res.ok) {
-          const data = await res.json();
-          if (data.jobs && data.jobs.length) allJobs = data.jobs;
-          if (data.linkedinFeed) linkedinPosts = data.linkedinFeed;
-          if (data.cvId) currentCvId = data.cvId;
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const data = await res.json();
+            if (data.jobs && data.jobs.length) allJobs = data.jobs;
+            if (data.linkedinFeed) linkedinPosts = data.linkedinFeed;
+            if (data.cvId) currentCvId = data.cvId;
+          }
         }
       } catch (err) {
         console.log('Menggunakan database lokal:', err);
@@ -1167,13 +1173,28 @@ ${cleanEmail}`;
       };
 
       try {
-        const response = await fetch('/send-application', {
+        let response = await fetch('/api/send-application', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
-        const result = await response.json();
+        if (response.status === 404) {
+          response = await fetch('/send-application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        let result;
+        if (contentType.includes('application/json')) {
+          result = await response.json();
+        } else {
+          const errText = await response.text();
+          throw new Error(`Respon server (${response.status}): Silakan coba kirim ulang.`);
+        }
 
         if (response.ok && result.success) {
           if (statusDiv) {

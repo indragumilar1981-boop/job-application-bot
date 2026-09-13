@@ -2,16 +2,28 @@
   "version": 2,
   "rewrites": [
     {
-      "source": "/api/auth/(.*)",
-      "destination": "/api/index.js"
+      "source": "/send-application",
+      "destination": "/api/send-application.js"
     },
     {
       "source": "/search",
-      "destination": "/api/index.js"
+      "destination": "/api/search.js"
     },
     {
-      "source": "/send-application",
-      "destination": "/api/index.js"
+      "source": "/linkedin-feed",
+      "destination": "/api/linkedin-feed.js"
+    },
+    {
+      "source": "/api/send-application",
+      "destination": "/api/send-application.js"
+    },
+    {
+      "source": "/api/search",
+      "destination": "/api/search.js"
+    },
+    {
+      "source": "/api/linkedin-feed",
+      "destination": "/api/linkedin-feed.js"
     },
     {
       "source": "/api/(.*)",

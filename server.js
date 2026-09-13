@@ -33,7 +33,9 @@ const upload = multer({
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+// Body parsing and static files
 app.use(express.static(__dirname));
 
 const cvStore = {};
@@ -348,7 +350,7 @@ app.get('/api/auth/user', (req, res) => {
 
 // Endpoint: Memindai Feed LinkedIn secara Realtime (Auto-Refresh 1 Menit)
 let scanIteration = 0;
-app.get('/api/linkedin-feed', (req, res) => {
+app.get(['/linkedin-feed', '/api/linkedin-feed'], (req, res) => {
   scanIteration++;
   
   // Setiap pemindaian, buat postingan terkini dari rekruter
@@ -416,7 +418,7 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
-app.post('/search', upload.single('cv'), (req, res) => {
+app.post(['/search', '/api/search'], upload.single('cv'), (req, res) => {
   const keywords = (req.body.keywords || '').toLowerCase().split(/[,\s]+/).filter(k => k.length > 2);
   const categoryFilter = req.body.category || 'all';
   const cvId = uuidv4();
@@ -550,7 +552,7 @@ ${cleanEmail}`;
 }
 
 // PENGIRIMAN EMAIL RESMI GMAIL: TERCATAT DI FOLDER "PESAN TERKIRIM" (SENT)
-app.post('/send-application', async (req, res) => {
+app.post(['/send-application', '/api/send-application'], async (req, res) => {
   try {
     const { 
       recipientEmail, 
@@ -708,7 +710,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'online', timestamp: new Date().toISOString() });
 });
 
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`Job Application Bot server listening on http://localhost:${PORT}`);
