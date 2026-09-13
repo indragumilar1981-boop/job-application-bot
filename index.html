@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Job Application Bot</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="container">
+    <div class="header-badge">🚀 AI Powered Job Bot</div>
+    <h1>Kirim Lamaran Otomatis</h1>
+    <p class="subtitle">Upload CV Anda, AI akan menganalisis profil dan mencocokkan lowongan terbaik untuk dikirimkan secara instan.</p>
+    
+    <form id="uploadForm" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="cvFile">📄 Upload Dokumen CV (PDF / DOCX)</label>
+        <input type="file" id="cvFile" name="cv" accept=".pdf,.docx" required />
+      </div>
+
+      <div class="form-group">
+        <label for="keywords">🎯 Bidang & Kata Kunci Keahlian</label>
+        <input type="text" id="keywords" name="keywords" placeholder="Contoh: frontend, react, nodejs, python, fullstack" required />
+      </div>
+
+      <button type="submit" id="submitBtn">⚡ Analisis CV & Cari Lowongan</button>
+    </form>
+
+    <div id="results" class="results"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const resultsDiv = document.getElementById('results');
+    let currentCvId = null;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const cvFile = document.getElementById('cvFile').files[0];
+      const keywords = document.getElementById('keywords').value;
+
+      if (!cvFile) {
+        alert('Silakan pilih file CV terlebih dahulu!');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('cv', cvFile);
+      formData.append('keywords', keywords);
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ AI Sedang Menganalisis CV...';
+      resultsDiv.innerHTML = `
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Memproses CV dan memindai portal lowongan kerja...</p>
+        </div>
+      `;
+
+      try {
+        const response = await fetch('/search', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Gagal menghubungi server');
+        }
+
+        const data = await response.json();
+        currentCvId = data.cvId;
+
+        if (data.jobs && data.jobs.length) {
+          resultsDiv.innerHTML = `
+            <h2 class="results-title">✨ Rekomendasi Lowongan Cocok (${data.jobs.length})</h2>
+            ${data.jobs.map(job => `
+              <div class="job-card">
+                <div class="job-card-header">
+                  <h3>${job.title}</h3>
+                  <span class="match-badge">🔥 ${job.matchScore}% Cocok</span>
+                </div>
+                <p class="company-name">🏢 ${job.company}</p>
+                <p class="location-name">📍 ${job.location}</p>
+                <div class="skills-tags">
+                  ${job.required ? job.required.map(s => `<span class="tag">${s}</span>`).join('') : ''}
+                </div>
+                <button class="apply-btn" data-id="${job.id}">
+                  🚀 Kirim Lamaran & CV Langsung
+                </button>
+              </div>
+            `).join('')}
+          `;
+
+          document.querySelectorAll('.apply-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              btn.disabled = true;
+              btn.textContent = '⏳ Mengirim CV ke HRD...';
+              try {
+                const res = await fetch('/apply', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ jobId: btn.dataset.id, cvId: currentCvId })
+                });
+                const resData = await res.json();
+                btn.textContent = '✅ Lamaran Terkirim!';
+                btn.style.background = '#10B981';
+              } catch (err) {
+                btn.disabled = false;
+                btn.textContent = '❌ Coba Lagi';
+              }
+            });
+          });
+        } else {
+          resultsDiv.innerHTML = '<p class="empty-state">❌ Tidak ada lowongan yang cocok saat ini. Coba ubah kata kunci.</p>';
+        }
+      } catch (err) {
+        resultsDiv.innerHTML = `<p class="error-state">⚠️ Terjadi kesalahan: ${err.message}</p>`;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '⚡ Analisis CV & Cari Lowongan';
+      }
+    });
+  </script>
+</body>
+</html>
