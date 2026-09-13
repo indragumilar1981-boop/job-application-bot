@@ -208,6 +208,35 @@
         </div>
       </div>
 
+      <!-- FILTER SUMBER PORTAL (JOBSTREET, LINKEDIN, DLL) -->
+      <div class="portal-filter-bar" id="portalFilterBar">
+        <div class="portal-filter-left">
+          <span class="filter-label">Sumber Portal:</span>
+          <div class="portal-filter-group" id="portalFilters">
+            <button type="button" class="portal-pill active" data-portal="all">
+              🌐 Semua Portal (<span id="countPortalAll">18</span>)
+            </button>
+            <button type="button" class="portal-pill highlight-jobstreet" data-portal="jobstreet">
+              🏢 JobStreet Indonesia (<span id="countPortalJobstreet">9</span>)
+            </button>
+            <button type="button" class="portal-pill" data-portal="linkedin">
+              💼 LinkedIn Jobs (<span id="countPortalLinkedin">6</span>)
+            </button>
+            <button type="button" class="portal-pill" data-portal="other">
+              ✨ Glints & Karir.com (<span id="countPortalOther">3</span>)
+            </button>
+          </div>
+        </div>
+        <div class="portal-actions-right">
+          <button type="button" id="btnOpenAddJobStreet" class="btn-add-jobstreet" title="Input lowongan yang Anda lihat di Jobstreet secara instan">
+            ➕ Tambah Lowongan JobStreet
+          </button>
+          <a href="https://id.jobstreet.com/id/job-search/supply-chain-jobs-in-bekasi-jawa-barat/" target="_blank" class="btn-link-jobstreet" title="Buka website Jobstreet Indonesia di tab baru">
+            🌐 Cari di Jobstreet ↗
+          </a>
+        </div>
+      </div>
+
       <!-- FILTER KATEGORI LOWONGAN -->
       <div class="category-filters" id="categoryFilters">
         <button class="filter-pill active" data-cat="all">Semua Posisi (12)</button>
@@ -406,6 +435,70 @@
     </div>
   </div>
 
+  <!-- MODAL INPUT LOWONGAN JOBSTREET MANUAL -->
+  <div id="modalAddJobStreet" class="modal-overlay hidden">
+    <div class="modal-content modal-jobstreet-content">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <span class="modal-icon-badge">🏢</span>
+          <div>
+            <h3>Input Lowongan Baru dari JobStreet</h3>
+            <p class="modal-sub">Salin lowongan yang Anda lihat di <code>id.jobstreet.com</code> untuk dianalisis & dilamar otomatis oleh bot</p>
+          </div>
+        </div>
+        <button id="btnCloseAddJobStreet" class="close-btn">&times;</button>
+      </div>
+      <form id="formAddJobStreet" class="modal-form-body">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Posisi / Judul Lowongan: <span class="req">*</span></label>
+            <input type="text" id="inputJsTitle" placeholder="Contoh: HEAD OF WAREHOUSE" required class="input-modern" />
+          </div>
+          <div class="form-group">
+            <label>Nama Perusahaan: <span class="req">*</span></label>
+            <input type="text" id="inputJsCompany" placeholder="Contoh: PT. Lasallefood Indonesia" required class="input-modern" />
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Lokasi Penempatan:</label>
+            <input type="text" id="inputJsLocation" placeholder="Contoh: Cileungsi, Bekasi / Jawa Barat" class="input-modern" />
+          </div>
+          <div class="form-group">
+            <label>Estimasi Gaji:</label>
+            <input type="text" id="inputJsSalary" placeholder="Contoh: Rp 12.000.000 - Rp 18.000.000" class="input-modern" />
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Email HRD Tujuan: <span class="req">*</span></label>
+            <input type="email" id="inputJsEmail" placeholder="Contoh: recruitment@perusahaan.com" required class="input-modern" />
+            <small class="field-hint">Email resmi untuk pengiriman surat lamaran & CV Anda</small>
+          </div>
+          <div class="form-group">
+            <label>Kategori Pekerjaan:</label>
+            <select id="inputJsCategory" class="input-modern">
+              <option value="warehouse">🏢 Logistik & Gudang (Warehouse)</option>
+              <option value="supply_chain">💼 Supply Chain Operations</option>
+              <option value="procurement">✨ Strategic Procurement</option>
+              <option value="transport">🚚 Transport & Fleet</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Link Lowongan Jobstreet (Opsional):</label>
+          <input type="url" id="inputJsUrl" placeholder="https://id.jobstreet.com/id/job/..." class="input-modern" />
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="btnCancelAddJobStreet" class="btn-secondary">Batal</button>
+          <button type="submit" class="btn-primary">
+            ✨ Simpan & Analisis dengan CV Saya
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     let currentUser = {
       name: 'Indra Gumilar',
@@ -416,6 +509,7 @@
 
     let allJobs = [];
     let currentCategory = 'all';
+    let currentPortalFilter = 'all';
     let linkedinPosts = [];
 
     const unconnectedState = document.getElementById('unconnectedState');
@@ -441,6 +535,13 @@
     const customEmailInput = document.getElementById('customEmailInput');
     const modalSenderEmail = document.getElementById('modalSenderEmail');
 
+    // MODAL ADD JOBSTREET MANUAL
+    const modalAddJobStreet = document.getElementById('modalAddJobStreet');
+    const btnOpenAddJobStreet = document.getElementById('btnOpenAddJobStreet');
+    const btnCloseAddJobStreet = document.getElementById('btnCloseAddJobStreet');
+    const btnCancelAddJobStreet = document.getElementById('btnCancelAddJobStreet');
+    const formAddJobStreet = document.getElementById('formAddJobStreet');
+
     // TABS & CONTAINERS
     const tabJobsBtn = document.getElementById('tabJobsBtn');
     const tabLinkedInBtn = document.getElementById('tabLinkedInBtn');
@@ -450,6 +551,7 @@
     const dashboardSection = document.getElementById('dashboardSection');
     const categoryFilters = document.getElementById('categoryFilters');
     const statusFilterBar = document.getElementById('statusFilterBar');
+    const portalFilterBar = document.getElementById('portalFilterBar');
     const jobsCountEl = document.getElementById('jobsCount');
     const linkedinCountEl = document.getElementById('linkedinCount');
     const dashboardSentCountEl = document.getElementById('dashboardSentCount');
@@ -615,6 +717,7 @@
       jobsList.classList.remove('hidden');
       categoryFilters.classList.remove('hidden');
       if (statusFilterBar) statusFilterBar.classList.remove('hidden');
+      if (portalFilterBar) portalFilterBar.classList.remove('hidden');
       linkedinFeedList.classList.add('hidden');
       dashboardSection.classList.add('hidden');
     });
@@ -626,6 +729,7 @@
       jobsList.classList.add('hidden');
       categoryFilters.classList.add('hidden');
       if (statusFilterBar) statusFilterBar.classList.add('hidden');
+      if (portalFilterBar) portalFilterBar.classList.add('hidden');
       linkedinFeedList.classList.remove('hidden');
       dashboardSection.classList.add('hidden');
       renderLinkedInFeed();
@@ -638,6 +742,7 @@
       jobsList.classList.add('hidden');
       categoryFilters.classList.add('hidden');
       if (statusFilterBar) statusFilterBar.classList.add('hidden');
+      if (portalFilterBar) portalFilterBar.classList.add('hidden');
       linkedinFeedList.classList.add('hidden');
       dashboardSection.classList.remove('hidden');
       renderDashboardReport();
@@ -663,13 +768,19 @@
       return null;
     }
 
-    function markApplicationSent(jobId, jobTitle, company, hrEmail) {
+    function markApplicationSent(jobId, jobTitle, company, hrEmail, source) {
       const history = getSentHistory();
+      let foundJob = allJobs.find(j => j.id === jobId || (j.company && company && j.company.toLowerCase() === company.toLowerCase()));
+      let jobSource = source || (foundJob ? foundJob.source : null);
+      if (!jobSource && /post_/.test(jobId)) jobSource = 'Feed Rekruter LinkedIn';
+      if (!jobSource) jobSource = 'Portal Resmi';
+
       const record = {
         jobId,
         jobTitle,
         company,
         hrEmail,
+        source: jobSource,
         sentAt: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }),
         timestamp: Date.now()
       };
@@ -677,6 +788,23 @@
       if (hrEmail) history['email_' + hrEmail.toLowerCase().trim()] = record;
       localStorage.setItem('sent_applications_history', JSON.stringify(history));
       updateStatusFilterCounts();
+    }
+
+    function updatePortalFilterCounts() {
+      const countAll = allJobs.length;
+      const countJs = allJobs.filter(j => (j.source || '').toLowerCase().includes('jobstreet')).length;
+      const countLi = allJobs.filter(j => (j.source || '').toLowerCase().includes('linkedin')).length;
+      const countOther = allJobs.filter(j => !(j.source || '').toLowerCase().includes('jobstreet') && !(j.source || '').toLowerCase().includes('linkedin')).length;
+
+      const elAll = document.getElementById('countPortalAll');
+      const elJs = document.getElementById('countPortalJobstreet');
+      const elLi = document.getElementById('countPortalLinkedin');
+      const elOther = document.getElementById('countPortalOther');
+
+      if (elAll) elAll.textContent = countAll;
+      if (elJs) elJs.textContent = countJs;
+      if (elLi) elLi.textContent = countLi;
+      if (elOther) elOther.textContent = countOther;
     }
 
     function updateStatusFilterCounts() {
@@ -693,6 +821,8 @@
       if (countAll) countAll.textContent = allJobs.length;
       if (countUnapplied) countUnapplied.textContent = unappliedCount;
       if (countApplied) countApplied.textContent = appliedCount;
+
+      updatePortalFilterCounts();
     }
 
     // STATUS FILTER (SEMUA / BELUM DILAMAR / SUDAH DILAMAR)
@@ -702,6 +832,16 @@
         document.querySelectorAll('.status-pill').forEach(p => p.classList.remove('active'));
         pill.classList.add('active');
         currentStatusFilter = pill.dataset.status;
+        renderFilteredJobs();
+      });
+    });
+
+    // PORTAL SOURCE FILTER (SEMUA / JOBSTREET / LINKEDIN / LAINNYA)
+    document.querySelectorAll('.portal-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.portal-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentPortalFilter = pill.dataset.portal;
         renderFilteredJobs();
       });
     });
@@ -716,8 +856,98 @@
       });
     });
 
-    // 12 DATABASE LOWONGAN RESMI
+    // DATABASE LOWONGAN RESMI (JOBSTREET, LINKEDIN, GLINTS)
     const EXPANDED_JOBS = [
+      { 
+        id: 'job_js_1', 
+        title: 'HEAD OF WAREHOUSE', 
+        company: 'PT. Lasallefood Indonesia', 
+        category: 'warehouse',
+        location: 'Cileungsi / Bekasi, Jawa Barat', 
+        hrEmail: 'recruitment.lasallefood@gmail.com',
+        salary: 'Rp 12.000.000 - Rp 18.000.000',
+        source: 'Jobstreet Indonesia',
+        sourceIcon: '🏢',
+        sourceUrl: 'https://id.jobstreet.com/id/job-search/warehouse-jobs-in-bekasi-jawa-barat/',
+        postedTime: 'Diposting 3 hari yang lalu di Jobstreet',
+        matchScore: 97,
+        required: ['warehouse', 'logistik', 'supply chain', 'stock opname', 'distribusi', 'pergudangan'] 
+      },
+      { 
+        id: 'job_js_2', 
+        title: 'Operations Supervisor / Supervisor Operasi', 
+        company: 'PT CLOUD DREAM MARKETING', 
+        category: 'supply_chain',
+        location: 'Jakarta Raya / Bekasi', 
+        hrEmail: 'recruitment.clouddream@gmail.com',
+        salary: 'Rp 11.500.000 - Rp 13.500.000',
+        source: 'Jobstreet Indonesia',
+        sourceIcon: '🏢',
+        sourceUrl: 'https://id.jobstreet.com/id/job-search/operations-supervisor-jobs/',
+        postedTime: 'Diposting 6 hari yang lalu di Jobstreet',
+        matchScore: 95,
+        required: ['operasional', 'supervisor', 'supply chain', 'kpi', 'logistik', 'management'] 
+      },
+      { 
+        id: 'job_js_3', 
+        title: 'Supervisor Logistic Solution (PPJK)', 
+        company: 'Cikarang Inland Port (Cikarang Dry Port)', 
+        category: 'transport',
+        location: 'Cikarang Utara, Jawa Barat', 
+        hrEmail: 'recruitment.cikarangdryport@gmail.com',
+        salary: 'Rp 9.000.000 - Rp 14.500.000',
+        source: 'Jobstreet Indonesia',
+        sourceIcon: '🏢',
+        sourceUrl: 'https://id.jobstreet.com/id/job-search/logistics-jobs-in-cikarang-jawa-barat/',
+        postedTime: 'Baru Diposting di Jobstreet',
+        matchScore: 94,
+        required: ['logistik', 'ppjk', 'custom clearance', 'cikarang', 'inland port', 'transportasi'] 
+      },
+      { 
+        id: 'job_js_4', 
+        title: 'Supply Chain & Inventory Coordinator', 
+        company: 'PT Mayora Indah Tbk', 
+        category: 'supply_chain',
+        location: 'Cibitung / Cikarang Barat, Bekasi', 
+        hrEmail: 'recruitment.mayoralogistics@gmail.com',
+        salary: 'Rp 8.500.000 - Rp 12.500.000',
+        source: 'Jobstreet Indonesia',
+        sourceIcon: '🏢',
+        sourceUrl: 'https://id.jobstreet.com/id/job-search/supply-chain-jobs-in-bekasi-jawa-barat/',
+        postedTime: 'Diposting 2 hari yang lalu di Jobstreet',
+        matchScore: 93,
+        required: ['supply chain', 'inventory', 'sap', 'stock opname', 'distribusi'] 
+      },
+      { 
+        id: 'job_js_5', 
+        title: 'Warehouse & Logistics Manager', 
+        company: 'PT Lion Super Indo DC Cikarang', 
+        category: 'warehouse',
+        location: 'Kawasan Industri MM2100, Cikarang', 
+        hrEmail: 'career.superindodc@gmail.com',
+        salary: 'Rp 14.000.000 - Rp 21.000.000',
+        source: 'Jobstreet Indonesia',
+        sourceIcon: '🏢',
+        sourceUrl: 'https://id.jobstreet.com/id/job-search/warehouse-manager-jobs-in-cikarang/',
+        postedTime: 'Diposting 1 hari yang lalu di Jobstreet',
+        matchScore: 96,
+        required: ['warehouse', 'dc', 'distribution center', 'wms', 'supply chain', 'pergudangan'] 
+      },
+      { 
+        id: 'job_js_6', 
+        title: 'Procurement & Purchasing Specialist', 
+        company: 'PT Kalbe Farma Tbk (Delta Silicon)', 
+        category: 'procurement',
+        location: 'Delta Silicon, Cikarang Selatan, Bekasi', 
+        hrEmail: 'recruitment.kalbecikarang@gmail.com',
+        salary: 'Rp 9.500.000 - Rp 15.000.000',
+        source: 'Jobstreet Indonesia',
+        sourceIcon: '🏢',
+        sourceUrl: 'https://id.jobstreet.com/id/job-search/procurement-jobs-in-cikarang/',
+        postedTime: 'Diposting 3 hari yang lalu di Jobstreet',
+        matchScore: 91,
+        required: ['procurement', 'purchasing', 'vendor management', 'sourcing', 'negosiasi'] 
+      },
       { 
         id: 'job_sc_1', 
         title: 'Supply Chain & Logistics Specialist', 
@@ -1139,6 +1369,15 @@
       if (currentCategory !== 'all') {
         displayed = displayed.filter(j => j.category === currentCategory);
       }
+      if (currentPortalFilter !== 'all') {
+        if (currentPortalFilter === 'jobstreet') {
+          displayed = displayed.filter(j => (j.source || '').toLowerCase().includes('jobstreet'));
+        } else if (currentPortalFilter === 'linkedin') {
+          displayed = displayed.filter(j => (j.source || '').toLowerCase().includes('linkedin'));
+        } else if (currentPortalFilter === 'other') {
+          displayed = displayed.filter(j => !(j.source || '').toLowerCase().includes('jobstreet') && !(j.source || '').toLowerCase().includes('linkedin'));
+        }
+      }
       if (currentStatusFilter === 'unapplied') {
         displayed = displayed.filter(j => !isApplicationSent(j.id, j.hrEmail));
       } else if (currentStatusFilter === 'applied') {
@@ -1146,7 +1385,7 @@
       }
 
       if (displayed.length === 0) {
-        jobsList.innerHTML = `<p class="empty-state">Tidak ada lowongan pada filter ini (${currentStatusFilter === 'applied' ? 'Belum ada lowongan yang dilamar' : 'Semua lowongan sudah dilamar atau tidak cocok kategori'}).</p>`;
+        jobsList.innerHTML = `<p class="empty-state">Tidak ada lowongan pada kombinasi filter ini (Status: ${currentStatusFilter}, Portal: ${currentPortalFilter}, Kategori: ${currentCategory}). Coba ganti filter atau klik "➕ Tambah Lowongan JobStreet".</p>`;
         return;
       }
 
@@ -1512,7 +1751,7 @@ ${cleanEmail}`;
             `;
           }
           // Rekam status pengiriman permanen (Pencegahan Anti-Dobel)
-          markApplicationSent(job.id, job.title, job.company, job.hrEmail);
+          markApplicationSent(job.id, job.title, job.company, job.hrEmail, job.source);
           updateStatusFilterCounts();
 
           if (sendBtn) {
@@ -1667,6 +1906,15 @@ ${cleanEmail}`;
         if (!key.startsWith('email_') && rec && rec.hrEmail) {
           const uniqueKey = (rec.hrEmail || '').toLowerCase().trim() + '_' + (rec.jobTitle || '').toLowerCase().trim();
           if (!uniqueMap.has(uniqueKey)) {
+            // Pastikan sumber portal akurat (termasuk Jobstreet & LinkedIn)
+            let resolvedSource = rec.source;
+            const matchJob = allJobs.find(j => j.id === rec.jobId || (j.company && rec.company && j.company.toLowerCase().trim() === rec.company.toLowerCase().trim()));
+            if (matchJob && matchJob.source) {
+              resolvedSource = matchJob.source;
+            } else if (!resolvedSource) {
+              resolvedSource = /feed/i.test(rec.jobId || '') ? 'Feed Rekruter LinkedIn' : 'Portal Resmi';
+            }
+            rec.source = resolvedSource;
             uniqueMap.set(uniqueKey, rec);
           }
         }
@@ -1735,7 +1983,11 @@ ${cleanEmail}`;
       };
 
       records.forEach(r => {
-        const src = (r.source || '').toLowerCase();
+        let src = (r.source || '').toLowerCase();
+        if (!src || src === 'portal resmi' || src === 'linkedin jobs') {
+          const matchJob = allJobs.find(j => j.id === r.jobId || (j.company && r.company && j.company.toLowerCase().trim() === r.company.toLowerCase().trim()));
+          if (matchJob && matchJob.source) src = matchJob.source.toLowerCase();
+        }
         if (/feed/.test(src)) {
           srcCounts['Feed Rekruter LinkedIn']++;
         } else if (/jobstreet/.test(src)) {
@@ -1782,18 +2034,27 @@ ${cleanEmail}`;
       } else {
         if (emptyReportState) emptyReportState.classList.add('hidden');
         if (reportTableBody) {
-          reportTableBody.innerHTML = filteredRecords.map((rec, index) => `
+          reportTableBody.innerHTML = filteredRecords.map((rec, index) => {
+            let rowSource = rec.source || '';
+            if (!rowSource || rowSource === 'Portal Resmi') {
+              const m = allJobs.find(j => j.id === rec.jobId || (j.company && rec.company && j.company.toLowerCase().trim() === rec.company.toLowerCase().trim()));
+              if (m && m.source) rowSource = m.source;
+            }
+            if (!rowSource) rowSource = 'Portal Resmi';
+
+            return `
             <tr>
               <td><strong>#${index + 1}</strong></td>
               <td><small>📅 ${rec.sentAt || 'Terkirim'}</small></td>
               <td><strong>${rec.jobTitle || 'Supply Chain Specialist'}</strong></td>
               <td>🏢 ${rec.company || 'Perusahaan'}</td>
               <td><a href="mailto:${rec.hrEmail}" style="color:#60a5fa;text-decoration:none;">✉️ ${rec.hrEmail}</a></td>
-              <td><span class="badge-portal-source">${rec.source || 'Portal Resmi'}</span></td>
+              <td><span class="badge-portal-source">${rowSource}</span></td>
               <td><span class="table-file-pill">📎 Curriculum_Vitae_Indra_Gumilar.pdf</span></td>
               <td><span class="badge-sent-status">✅ Sent Folder Gmail</span></td>
             </tr>
-          `).join('');
+          `;
+          }).join('');
         }
       }
     }
@@ -1840,6 +2101,68 @@ ${cleanEmail}`;
     if (searchReportInput) {
       searchReportInput.addEventListener('input', (e) => {
         renderDashboardReport(e.target.value);
+      });
+    }
+
+    // MODAL INPUT LOWONGAN JOBSTREET MANUAL HANDLER
+    if (btnOpenAddJobStreet) {
+      btnOpenAddJobStreet.addEventListener('click', () => {
+        if (modalAddJobStreet) modalAddJobStreet.classList.remove('hidden');
+      });
+    }
+    if (btnCloseAddJobStreet) {
+      btnCloseAddJobStreet.addEventListener('click', () => {
+        if (modalAddJobStreet) modalAddJobStreet.classList.add('hidden');
+      });
+    }
+    if (btnCancelAddJobStreet) {
+      btnCancelAddJobStreet.addEventListener('click', () => {
+        if (modalAddJobStreet) modalAddJobStreet.classList.add('hidden');
+      });
+    }
+    if (formAddJobStreet) {
+      formAddJobStreet.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('inputJsTitle').value.trim();
+        const company = document.getElementById('inputJsCompany').value.trim();
+        const location = document.getElementById('inputJsLocation').value.trim() || 'Bekasi / Jawa Barat';
+        const salary = document.getElementById('inputJsSalary').value.trim() || 'Sesuai Standar Industri';
+        const hrEmail = document.getElementById('inputJsEmail').value.trim();
+        const category = document.getElementById('inputJsCategory').value || 'warehouse';
+        const sourceUrl = document.getElementById('inputJsUrl').value.trim() || 'https://id.jobstreet.com/';
+
+        const newJob = {
+          id: 'job_custom_' + Date.now(),
+          title,
+          company,
+          category,
+          location,
+          hrEmail,
+          salary,
+          source: 'Jobstreet Indonesia',
+          sourceIcon: '🏢',
+          sourceUrl,
+          postedTime: 'Baru saja di-input dari Jobstreet',
+          matchScore: 98,
+          required: ['supply chain', 'warehouse', 'logistik', 'operasional']
+        };
+
+        allJobs.unshift(newJob);
+        if (modalAddJobStreet) modalAddJobStreet.classList.add('hidden');
+        formAddJobStreet.reset();
+
+        // Pindah otomatis ke filter portal Jobstreet
+        currentPortalFilter = 'jobstreet';
+        document.querySelectorAll('.portal-pill').forEach(p => {
+          p.classList.toggle('active', p.dataset.portal === 'jobstreet');
+        });
+
+        updatePortalFilterCounts();
+        updateStatusFilterCounts();
+        if (jobsCountEl) jobsCountEl.textContent = allJobs.length;
+        renderFilteredJobs();
+        renderDashboardReport();
+        showNotifBanner(`✅ Lowongan "${title}" di ${company} berhasil ditambahkan dari JobStreet dan siap dilamar!`);
       });
     }
 

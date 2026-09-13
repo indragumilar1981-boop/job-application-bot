@@ -2002,4 +2002,207 @@ input:checked + .slider:before {
   font-size: 0.86rem;
 }
 
+/* PORTAL SOURCE FILTER BAR */
+.portal-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.85rem;
+  background: rgba(15, 23, 42, 0.65);
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.portal-filter-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.portal-filter-group {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.portal-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.portal-pill:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.portal-pill.active {
+  background: #3b82f6;
+  border-color: #60a5fa;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+}
+
+.portal-pill.highlight-jobstreet {
+  border-color: rgba(234, 88, 12, 0.45);
+  color: #fdba74;
+}
+
+.portal-pill.highlight-jobstreet.active {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  border-color: #f97316;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.4);
+}
+
+.portal-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-add-jobstreet {
+  background: linear-gradient(135deg, #059669, #047857);
+  color: #ffffff;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s;
+}
+
+.btn-add-jobstreet:hover {
+  background: linear-gradient(135deg, #10b981, #059669);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-link-jobstreet {
+  background: rgba(234, 88, 12, 0.15);
+  color: #fb923c;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 0.2s;
+}
+
+.btn-link-jobstreet:hover {
+  background: rgba(234, 88, 12, 0.25);
+  color: #fdba74;
+  border-color: #fb923c;
+  transform: translateY(-1px);
+}
+
+/* MODAL JOBSTREET MANUAL INPUT */
+.modal-jobstreet-content {
+  max-width: 620px !important;
+  background: #0f172a !important;
+  border: 1px solid rgba(249, 115, 22, 0.35) !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(249, 115, 22, 0.15) !important;
+}
+
+.modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modal-icon-badge {
+  font-size: 1.8rem;
+  background: rgba(249, 115, 22, 0.15);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-sub {
+  margin: 0.2rem 0 0 0;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.modal-form-body {
+  margin-top: 1.25rem;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+@media (max-width: 600px) {
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.form-group label .req {
+  color: #ef4444;
+}
+
+.input-modern {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  color: #ffffff;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-modern:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.25);
+}
+
+.field-hint {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
 
