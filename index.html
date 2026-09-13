@@ -1051,6 +1051,30 @@ ${cleanEmail}`;
       modal.classList.remove('hidden');
     }
 
+    let uploadedCvBase64 = localStorage.getItem('cached_cv_base64') || null;
+    let uploadedCvFileName = localStorage.getItem('cached_cv_name') || 'Curriculum_Vitae_Indra_Gumilar.pdf';
+
+    const cvFileInput = document.getElementById('cvFile');
+    cvFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        uploadedCvFileName = file.name;
+        currentCvFileName = file.name;
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.result && reader.result.includes(',')) {
+            uploadedCvBase64 = reader.result.split(',')[1];
+            try {
+              localStorage.setItem('cached_cv_name', file.name);
+              localStorage.setItem('cached_cv_base64', uploadedCvBase64);
+            } catch (err) {}
+          }
+          showNotifBanner(`📄 Berkas CV "${file.name}" siap dilampirkan otomatis pada setiap lamaran!`);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
     confirmSendBtn.addEventListener('click', async () => {
       modal.classList.add('hidden');
       if (activeJob) {
@@ -1089,6 +1113,8 @@ ${cleanEmail}`;
         company: job.company,
         coverLetter: finalLetter,
         cvId: currentCvId,
+        cvBase64: uploadedCvBase64 || localStorage.getItem('cached_cv_base64') || null,
+        cvFileName: uploadedCvFileName || localStorage.getItem('cached_cv_name') || currentCvFileName,
         userAppPassword: localStorage.getItem('gmail_app_password') || ''
       };
 
@@ -1107,6 +1133,8 @@ ${cleanEmail}`;
               <div class="status-box status-success">
                 <div>✅ <strong>Lamaran & Lampiran CV Berhasil Terkirim!</strong></div>
                 <div class="receipt-text">Pengirim Resmi: <strong>${currentUser.email}</strong> ➜ HRD: <strong>${job.hrEmail}</strong></div>
+                <div class="receipt-text">Posisi Dilamar: <strong>${job.title}</strong></div>
+                <div class="receipt-text">📎 <strong>Lampiran CV:</strong> <code>${result.attachedFileName || uploadedCvFileName || 'Curriculum_Vitae_Indra_Gumilar.pdf'}</code> (Terlampir Resmi)</div>
                 <div class="receipt-text">Sumber: <strong>${job.source}</strong></div>
                 
                 ${result.isRealGmailSent ? `

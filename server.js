@@ -558,6 +558,8 @@ app.post('/send-application', async (req, res) => {
       company, 
       coverLetter, 
       cvId,
+      cvBase64,
+      cvFileName,
       userAppPassword 
     } = req.body;
 
@@ -637,12 +639,29 @@ app.post('/send-application', async (req, res) => {
       fromAddress = `"${sender.name}" <${sender.email}>`;
     }
 
+    // PENANGANAN LAMPIRAN BERKAS CV RESMI
     const attachments = [];
-    if (cvFile && cvFile.buffer) {
+    if (cvBase64) {
+      // 1. Berkas CV yang diupload pengguna dikirim langsung dari browser via Base64
+      attachments.push({
+        filename: cvFileName || 'Curriculum_Vitae_Indra_Gumilar.pdf',
+        content: Buffer.from(cvBase64, 'base64')
+      });
+    } else if (cvFile && cvFile.buffer) {
+      // 2. Berkas CV dari in-memory buffer
       attachments.push({
         filename: cvFile.originalName || 'Curriculum_Vitae_Indra_Gumilar.pdf',
         content: cvFile.buffer
       });
+    } else {
+      // 3. Berkas CV PDF Resmi Indra Gumilar yang tersimpan di server
+      const defaultPdfPath = path.join(__dirname, 'Curriculum_Vitae_Indra_Gumilar.pdf');
+      if (fs.existsSync(defaultPdfPath)) {
+        attachments.push({
+          filename: 'Curriculum_Vitae_Indra_Gumilar.pdf',
+          content: fs.readFileSync(defaultPdfPath)
+        });
+      }
     }
 
     const mailOptions = {
@@ -668,11 +687,12 @@ app.post('/send-application', async (req, res) => {
       senderEmail: sender.email,
       senderName: sender.name,
       recipientEmail: recipientEmail,
+      attachedFileName: attachments[0] ? attachments[0].filename : 'Curriculum_Vitae_Indra_Gumilar.pdf',
       isRealGmailSent,
       messageId: info.messageId, 
       previewUrl: testUrl || null,
       message: isRealGmailSent 
-        ? `Lamaran berhasil dikirim resmi DARI akun Anda (${sender.email}) dan otomatis TERCATAT di folder 'Pesan Terkirim (Sent)' Gmail Anda!`
+        ? `Lamaran & Lampiran CV berhasil dikirim resmi DARI akun Anda (${sender.email}) dan otomatis TERCATAT di folder 'Pesan Terkirim (Sent)' Gmail Anda!`
         : `Lamaran berhasil dikirimkan ke ${recipientEmail}!`
     });
   } catch (error) {
