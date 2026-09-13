@@ -812,6 +812,49 @@ app.post(['/send-application', '/api/send-application'], async (req, res) => {
   }
 });
 
+// ENDPOINT: Terima lowongan dari Browser Extension
+app.post(['/add-job', '/api/add-job'], (req, res) => {
+  const CRON_SECRET = process.env.CRON_SECRET || 'autopilot-bot-2025';
+  const auth = req.headers['authorization'];
+  
+  if (auth !== `Bearer ${CRON_SECRET}`) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+
+  const { id, title, company, location, hrEmail, salary, source, sourceIcon, sourceUrl, category, matchScore, required } = req.body;
+
+  if (!title || !company) {
+    return res.status(400).json({ success: false, error: 'title dan company wajib diisi' });
+  }
+
+  // Cek duplikat
+  const exists = JOB_DATABASE.find(j => j.id === id || (j.title === title && j.company === company));
+  if (exists) {
+    return res.json({ success: true, isDuplicate: true, message: 'Lowongan sudah ada di database' });
+  }
+
+  const newJob = {
+    id: id || `job_ext_${Date.now()}`,
+    title,
+    company,
+    category: category || 'supply_chain',
+    location: location || 'Bekasi / Jakarta',
+    hrEmail: hrEmail || '',
+    salary: salary || 'Sesuai pengalaman',
+    source: source || 'Browser Extension',
+    sourceIcon: sourceIcon || '🔍',
+    sourceUrl: sourceUrl || '',
+    postedTime: `Terdeteksi ${new Date().toLocaleDateString('id-ID')}`,
+    matchScore: matchScore || 90,
+    required: required || ['supply chain', 'logistik']
+  };
+
+  JOB_DATABASE.push(newJob);
+
+  console.log(`[ADD-JOB] Lowongan baru dari extension: "${title}" @ ${company}`);
+  res.json({ success: true, job: newJob, message: `Lowongan "${title}" berhasil ditambahkan!` });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'online', timestamp: new Date().toISOString() });
 });

@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "Job Bot - Auto Detect Lowongan",
+  "version": "1.0.0",
+  "description": "Otomatis mendeteksi lowongan kerja dari LinkedIn & Jobstreet saat Anda browsing, lalu menambahkannya ke sistem bot lamaran.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "notifications",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://*.linkedin.com/*",
+    "https://*.jobstreet.com/*",
+    "https://job-application-bot-p5aq.vercel.app/*",
+    "http://localhost:3000/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Job Bot - Lowongan Terdeteksi",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.linkedin.com/jobs/*",
+        "https://*.linkedin.com/feed/*",
+        "https://www.linkedin.com/*"
+      ],
+      "js": ["content-linkedin.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.jobstreet.com/*",
+        "https://id.jobstreet.com/*"
+      ],
+      "js": ["content-jobstreet.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
