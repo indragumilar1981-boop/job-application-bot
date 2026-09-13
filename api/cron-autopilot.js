@@ -289,7 +289,7 @@ module.exports = async function handler(req, res) {
         from: `"${senderName}" <${senderEmail}>`,
         to: job.hrEmail,
         replyTo: senderEmail,
-        cc: senderEmail,
+        // cc dihapus - Gmail SMTP otomatis simpan di folder Sent tanpa perlu CC ke inbox sendiri
         subject: `Lamaran Pekerjaan: ${job.title} - ${senderName}`,
         html: htmlBody,
         attachments

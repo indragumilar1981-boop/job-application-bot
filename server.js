@@ -775,7 +775,7 @@ app.post(['/send-application', '/api/send-application'], async (req, res) => {
       from: fromAddress,
       to: recipientEmail,
       replyTo: sender.email,
-      cc: sender.email, // Tembusan konfirmasi ke Gmail pengguna
+      // cc dihapus - email otomatis tersimpan di folder Sent Gmail tanpa perlu CC ke inbox sendiri
       subject: `Lamaran Pekerjaan: ${jobTitle} - ${sender.name}`,
       text: finalPlainText,
       html: finalHtmlContent,
