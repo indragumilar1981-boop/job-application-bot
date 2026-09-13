@@ -1055,21 +1055,28 @@ ${cleanName}
 ${cleanEmail}`;
     }
 
-    // Event listener lamar cepat dari feed LinkedIn
-    document.querySelectorAll('.btn-apply-linkedin-recruiter').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const postId = btn.dataset.id;
-        const post = linkedinPosts.find(p => p.id === postId);
-        const jobObj = {
-          id: post.id,
-          title: post.jobTargetTitle,
-          company: post.companyTarget,
-          hrEmail: post.recruiterEmail,
-          source: 'Feed Postingan LinkedIn'
-        };
-        const tailoredLetter = buildPositionTailoredLetter(jobObj.title, jobObj.company, currentUser.name, currentUser.email);
-        await sendApplicationEmail(jobObj, tailoredLetter);
-      });
+    // Event listener delegation untuk seluruh tombol Lamar Cepat di Feed LinkedIn
+    linkedinFeedList.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.btn-apply-linkedin-recruiter');
+      if (!btn) return;
+
+      const postId = btn.dataset.id;
+      const post = linkedinPosts.find(p => String(p.id) === String(postId));
+      if (!post) {
+        console.warn('Post data LinkedIn tidak ditemukan untuk ID:', postId);
+        return;
+      }
+
+      const jobObj = {
+        id: post.id,
+        title: post.jobTargetTitle || 'Operations Coordinator',
+        company: post.companyTarget || 'Perusahaan Rekruter',
+        hrEmail: post.recruiterEmail,
+        source: 'Feed Postingan LinkedIn'
+      };
+
+      const tailoredLetter = buildPositionTailoredLetter(jobObj.title, jobObj.company, currentUser.name, currentUser.email);
+      await sendApplicationEmail(jobObj, tailoredLetter);
     });
 
     function attachJobCardEvents(jobs) {
@@ -1246,8 +1253,9 @@ ${cleanEmail}`;
       }
     }
 
-    // Tampilkan lowongan awal
+    // Tampilkan lowongan awal dan siapkan feed LinkedIn
     renderFilteredJobs();
+    renderLinkedInFeed();
   </script>
 </body>
 </html>
