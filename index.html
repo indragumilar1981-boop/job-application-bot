@@ -357,6 +357,56 @@
             <p>Silakan gunakan tombol "Kirim Lamaran" atau aktifkan "Mode Auto-Pilot" untuk mulai melamar pekerjaan secara otomatis.</p>
           </div>
         </div>
+
+        <!-- PANEL: CLOUD CRON AUTOPILOT STATUS -->
+        <div class="cron-status-panel" id="cronStatusPanel">
+          <div class="cron-panel-header">
+            <div class="cron-panel-title">
+              <div class="cron-cloud-icon" id="cronStatusIcon">☁️</div>
+              <div>
+                <h4>☁️ Cloud Auto-Pilot (Vercel Cron)</h4>
+                <p class="cron-sub-desc">Bot berjalan otomatis di cloud setiap 2 jam — <strong>tanpa perlu membuka browser!</strong></p>
+              </div>
+            </div>
+            <div class="cron-status-badge" id="cronBadge">
+              <span class="cron-pulse"></span> Aktif di Vercel Cloud
+            </div>
+          </div>
+
+          <div class="cron-info-grid">
+            <div class="cron-info-item">
+              <span class="cron-info-label">⏰ Jadwal Cron</span>
+              <strong class="cron-info-val">Setiap 2 Jam (0 */2 * * *)</strong>
+            </div>
+            <div class="cron-info-item">
+              <span class="cron-info-label">🌐 Server</span>
+              <strong class="cron-info-val">Vercel Serverless (Cloud)</strong>
+            </div>
+            <div class="cron-info-item">
+              <span class="cron-info-label">📧 Pengirim</span>
+              <strong class="cron-info-val">gumilar.indra@gmail.com</strong>
+            </div>
+            <div class="cron-info-item">
+              <span class="cron-info-label">🛡️ Anti-Duplikat</span>
+              <strong class="cron-info-val" style="color: #10b981;">✅ Aktif (Tidak kirim dua kali)</strong>
+            </div>
+          </div>
+
+          <div class="cron-action-row">
+            <button type="button" id="btnTriggerCronNow" class="btn-trigger-cron">
+              ⚡ Jalankan Sekarang (Manual)
+            </button>
+            <div class="cron-last-run" id="cronLastRun">
+              <span>Terakhir dijalankan: <strong id="cronLastRunTime">-</strong></span>
+            </div>
+          </div>
+
+          <!-- Cron Result Log -->
+          <div class="cron-result-log hidden" id="cronResultLog">
+            <div class="cron-log-header">📋 Hasil Pengiriman Terakhir Cron:</div>
+            <div id="cronLogContent" class="cron-log-content"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2177,6 +2227,86 @@ ${cleanEmail}`;
       setTimeout(() => {
         runAutoPilotQueue();
       }, 1500);
+    }
+
+    // =============================================
+    // CLOUD CRON AUTOPILOT - MANUAL TRIGGER
+    // =============================================
+    const btnTriggerCronNow = document.getElementById('btnTriggerCronNow');
+    const cronLastRunTime = document.getElementById('cronLastRunTime');
+    const cronResultLog = document.getElementById('cronResultLog');
+    const cronLogContent = document.getElementById('cronLogContent');
+    const cronBadge = document.getElementById('cronBadge');
+
+    // Restore last run time from localStorage
+    const savedCronLastRun = localStorage.getItem('cron_last_run');
+    if (savedCronLastRun && cronLastRunTime) {
+      cronLastRunTime.textContent = savedCronLastRun;
+    }
+
+    if (btnTriggerCronNow) {
+      btnTriggerCronNow.addEventListener('click', async () => {
+        btnTriggerCronNow.disabled = true;
+        btnTriggerCronNow.textContent = '⏳ Menjalankan Cloud Bot...';
+
+        if (cronBadge) {
+          cronBadge.innerHTML = '<span class="cron-pulse"></span> Sedang Berjalan...';
+          cronBadge.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        }
+
+        try {
+          const CRON_SECRET = 'autopilot-bot-2025';
+          const res = await fetch('/api/cron-autopilot', {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${CRON_SECRET}` }
+          });
+          const data = await res.json();
+
+          const now = new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+          if (cronLastRunTime) cronLastRunTime.textContent = now;
+          localStorage.setItem('cron_last_run', now);
+
+          if (cronBadge) {
+            cronBadge.innerHTML = '<span class="cron-pulse"></span> Aktif di Vercel Cloud';
+            cronBadge.style.background = '';
+          }
+
+          if (data.success) {
+            showNotifBanner(`✅ Cloud Bot selesai! Terkirim: ${data.summary?.sent || 0}, Dilewati: ${data.summary?.skipped || 0}`);
+
+            // Tampilkan log hasil di panel
+            if (cronResultLog && cronLogContent) {
+              cronResultLog.classList.remove('hidden');
+              const rows = (data.results || []).map(r => {
+                const icon = r.status === 'SENT' ? '✅' : r.status === 'SKIPPED' ? '⏭️' : '❌';
+                const statusClass = r.status === 'SENT' ? 'cron-log-sent' : r.status === 'SKIPPED' ? 'cron-log-skip' : 'cron-log-err';
+                return `<div class="cron-log-row ${statusClass}">
+                  <span class="cron-log-icon">${icon}</span>
+                  <span class="cron-log-title">${r.title || ''}</span>
+                  <span class="cron-log-company">${r.company || ''}</span>
+                  <span class="cron-log-status">${r.status}${r.reason ? ' — ' + r.reason : ''}</span>
+                </div>`;
+              }).join('');
+              cronLogContent.innerHTML = rows || '<p style="color:#64748b;padding:8px">Tidak ada hasil.</p>';
+            }
+
+            // Update dashboard metrics
+            renderDashboardReport();
+
+          } else {
+            showNotifBanner(`❌ Gagal menjalankan cron: ${data.error || 'Cek GMAIL_APP_PASSWORD di Vercel'}`, true);
+            if (cronBadge) {
+              cronBadge.innerHTML = '⚠️ Error — Cek Environment Variables';
+              cronBadge.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+            }
+          }
+        } catch (err) {
+          showNotifBanner(`❌ Koneksi gagal ke cloud cron: ${err.message}`, true);
+        } finally {
+          btnTriggerCronNow.disabled = false;
+          btnTriggerCronNow.textContent = '⚡ Jalankan Sekarang (Manual)';
+        }
+      });
     }
   </script>
 </body>
