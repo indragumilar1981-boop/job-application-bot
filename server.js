@@ -573,6 +573,21 @@ app.post(['/send-application', '/api/send-application'], async (req, res) => {
     const cvFile = cvId ? cvStore[cvId] : null;
     const appPassword = userAppPassword || sender.appPassword || process.env.GMAIL_APP_PASSWORD;
 
+    // Proteksi Anti-Dobel di level Server (Idempotency)
+    const idempotencyKey = `${recipientEmail.toLowerCase().trim()}_${(jobTitle || '').toLowerCase().trim()}`;
+    if (!global.recentlySentMap) global.recentlySentMap = new Map();
+    const lastSentTime = global.recentlySentMap.get(idempotencyKey);
+    if (lastSentTime && (Date.now() - lastSentTime) < 20000) {
+      return res.json({
+        success: true,
+        alreadySent: true,
+        recipientEmail,
+        isRealGmailSent: true,
+        messageId: 'anti-duplicate-cached',
+        message: 'Lamaran ke posisi dan HRD ini telah terkirim sebelumnya (proteksi anti-dobel aktif).'
+      });
+    }
+
     // GENERATE ISI LAMARAN OTOMATIS JIKA KOSONG ATAU SESUAIKAN POSISI
     const generatedLetter = generateTailoredCoverLetter(
       jobTitle, 
@@ -678,6 +693,7 @@ app.post(['/send-application', '/api/send-application'], async (req, res) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
+    global.recentlySentMap.set(idempotencyKey, Date.now());
     const testUrl = isRealGmailSent ? null : nodemailer.getTestMessageUrl(info);
 
     console.log(`[PENGIRIMAN BERHASIL] Dari: ${sender.email} ➜ Ke: ${recipientEmail} | SentFolder: ${isRealGmailSent} | Posisi: ${jobTitle} | ID: ${info.messageId}`);

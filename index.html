@@ -128,6 +128,29 @@
         </div>
       </div>
 
+      <!-- FITUR MODE AUTO-PILOT OTOMATIS (KIRIM TANPA KLIK) -->
+      <div class="autopilot-bar" id="autoPilotBar">
+        <div class="autopilot-info">
+          <div class="autopilot-icon-ring" id="autoPilotIcon">🤖</div>
+          <div class="autopilot-text-col">
+            <div class="autopilot-title-row">
+              <strong>Mode Auto-Pilot Otomatis</strong>
+              <span id="autoPilotStatusPill" class="autopilot-pill autopilot-pill-off">🔴 Nonaktif</span>
+            </div>
+            <p class="autopilot-desc" id="autoPilotDesc">
+              Secara otomatis mengirimkan surat lamaran & lampiran CV ke lowongan yang belum pernah dilamar tanpa perlu klik manual.
+            </p>
+          </div>
+        </div>
+        <div class="autopilot-toggle-area">
+          <span class="toggle-label" id="autoPilotLabel">Kirim Otomatis:</span>
+          <label class="switch" title="Aktifkan / Matikan Kirim Otomatis">
+            <input type="checkbox" id="toggleAutoPilot">
+            <span class="slider round"></span>
+          </label>
+        </div>
+      </div>
+
       <!-- KARTU RINGKASAN HASIL SCAN CV AI -->
       <div id="cvAnalysisSummary" class="cv-analysis-card hidden">
         <div class="cv-analysis-header">
@@ -164,6 +187,22 @@
         <button class="tab-btn" id="tabLinkedInBtn">
           <span class="pulse-dot"></span> 📢 Feed Rekruter LinkedIn (<span id="linkedinCount">4</span>)
         </button>
+      </div>
+
+      <!-- FILTER STATUS PENGIRIMAN (ANTI-DOBEL) -->
+      <div class="status-filter-bar">
+        <span class="filter-label">Status Lamaran:</span>
+        <div class="status-filter-group" id="statusFilters">
+          <button type="button" class="status-pill active" data-status="all">
+            📋 Semua (<span id="countAllStatus">12</span>)
+          </button>
+          <button type="button" class="status-pill" data-status="unapplied">
+            ⚡ Belum Pernah Dilamar (<span id="countUnapplied">12</span>)
+          </button>
+          <button type="button" class="status-pill" data-status="applied">
+            ✅ Sudah Dilamar (<span id="countApplied">0</span>)
+          </button>
+        </div>
       </div>
 
       <!-- FILTER KATEGORI LOWONGAN -->
@@ -470,6 +509,69 @@
       categoryFilters.classList.add('hidden');
       linkedinFeedList.classList.remove('hidden');
       renderLinkedInFeed();
+    });
+
+    // ==========================================================
+    // MANAJEMEN RIWAYAT LAMARAN TERKIRIM (PENCEGAHAN ANTI-DOBEL)
+    // ==========================================================
+    function getSentHistory() {
+      try {
+        return JSON.parse(localStorage.getItem('sent_applications_history') || '{}');
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function isApplicationSent(jobId, hrEmail) {
+      const history = getSentHistory();
+      if (jobId && history[jobId]) return history[jobId];
+      if (hrEmail && history['email_' + hrEmail.toLowerCase().trim()]) {
+        return history['email_' + hrEmail.toLowerCase().trim()];
+      }
+      return null;
+    }
+
+    function markApplicationSent(jobId, jobTitle, company, hrEmail) {
+      const history = getSentHistory();
+      const record = {
+        jobId,
+        jobTitle,
+        company,
+        hrEmail,
+        sentAt: new Date().toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }),
+        timestamp: Date.now()
+      };
+      if (jobId) history[jobId] = record;
+      if (hrEmail) history['email_' + hrEmail.toLowerCase().trim()] = record;
+      localStorage.setItem('sent_applications_history', JSON.stringify(history));
+      updateStatusFilterCounts();
+    }
+
+    function updateStatusFilterCounts() {
+      let appliedCount = 0;
+      allJobs.forEach(j => {
+        if (isApplicationSent(j.id, j.hrEmail)) appliedCount++;
+      });
+      const unappliedCount = Math.max(0, allJobs.length - appliedCount);
+
+      const countAll = document.getElementById('countAllStatus');
+      const countUnapplied = document.getElementById('countUnapplied');
+      const countApplied = document.getElementById('countApplied');
+
+      if (countAll) countAll.textContent = allJobs.length;
+      if (countUnapplied) countUnapplied.textContent = unappliedCount;
+      if (countApplied) countApplied.textContent = appliedCount;
+    }
+
+    // STATUS FILTER (SEMUA / BELUM DILAMAR / SUDAH DILAMAR)
+    let currentStatusFilter = 'all'; // 'all', 'unapplied', 'applied'
+    document.querySelectorAll('.status-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        document.querySelectorAll('.status-pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentStatusFilter = pill.dataset.status;
+        renderFilteredJobs();
+      });
     });
 
     // CATEGORY FILTER
@@ -784,6 +886,9 @@
               if (!linkedinFeedList.classList.contains('hidden')) {
                 renderLinkedInFeed();
               }
+              if (isAutoPilotActive) {
+                runAutoPilotQueue();
+              }
             }
           }
         }
@@ -896,18 +1001,29 @@
     });
 
     function renderFilteredJobs() {
+      updateStatusFilterCounts();
+
       let displayed = allJobs;
       if (currentCategory !== 'all') {
-        displayed = allJobs.filter(j => j.category === currentCategory);
+        displayed = displayed.filter(j => j.category === currentCategory);
+      }
+      if (currentStatusFilter === 'unapplied') {
+        displayed = displayed.filter(j => !isApplicationSent(j.id, j.hrEmail));
+      } else if (currentStatusFilter === 'applied') {
+        displayed = displayed.filter(j => isApplicationSent(j.id, j.hrEmail));
       }
 
       if (displayed.length === 0) {
-        jobsList.innerHTML = '<p class="empty-state">Tidak ada lowongan di kategori ini.</p>';
+        jobsList.innerHTML = `<p class="empty-state">Tidak ada lowongan pada filter ini (${currentStatusFilter === 'applied' ? 'Belum ada lowongan yang dilamar' : 'Semua lowongan sudah dilamar atau tidak cocok kategori'}).</p>`;
         return;
       }
 
-      jobsList.innerHTML = displayed.map(job => `
-        <div class="job-card" id="card-${job.id}">
+      jobsList.innerHTML = displayed.map(job => {
+        const sentRecord = isApplicationSent(job.id, job.hrEmail);
+        const isApplied = !!sentRecord;
+
+        return `
+        <div class="job-card ${isApplied ? 'is-applied' : ''}" id="card-${job.id}">
           <div class="job-source-bar">
             <span class="portal-badge">
               ${job.sourceIcon || '🌐'} ${job.source || 'Portal Resmi'}
@@ -925,30 +1041,44 @@
           
           <div class="email-input-group">
             <label for="email-${job.id}">✉️ Alamat Email HRD Tujuan:</label>
-            <input type="email" id="email-${job.id}" value="${job.hrEmail}" class="hr-email-field" />
+            <input type="email" id="email-${job.id}" value="${job.hrEmail}" class="hr-email-field" ${isApplied ? 'disabled' : ''} />
           </div>
 
-          <div class="sender-notice-box">
-            <div class="sender-notice-line">
-              📤 <strong>Email ini akan dikirimkan RESMI dari:</strong>
+          ${isApplied ? `
+            <div class="already-applied-banner">
+              <span>✅ <strong>SUDAH DILAMAR:</strong> Lamaran & CV telah dikirimkan ke HRD ini.</span>
+              <small>📅 ${sentRecord.sentAt || 'Terkirim'}</small>
             </div>
-            <div class="sender-notice-email">
-              <strong>${currentUser.name}</strong> (${currentUser.email})
+          ` : `
+            <div class="sender-notice-box">
+              <div class="sender-notice-line">
+                📤 <strong>Email ini akan dikirimkan RESMI dari:</strong>
+              </div>
+              <div class="sender-notice-email">
+                <strong>${currentUser.name}</strong> (${currentUser.email})
+              </div>
+              <small class="sender-notice-sub">📥 Balasan panggilan wawancara dari HRD akan langsung masuk ke inbox Gmail Anda.</small>
             </div>
-            <small class="sender-notice-sub">📥 Balasan panggilan wawancara dari HRD akan langsung masuk ke inbox Gmail Anda.</small>
-          </div>
+          `}
 
           <div class="job-actions">
-            <button class="btn-preview-letter" data-id="${job.id}">
-              📝 Pratinjau Cover Letter
-            </button>
-            <button class="btn-send-app" data-id="${job.id}">
-              🚀 Kirim dari ${currentUser.email.split('@')[0]}
-            </button>
+            ${isApplied ? `
+              <button class="btn-disabled-sent w-full" disabled title="Lamaran sudah pernah dikirimkan ke HRD ini untuk mencegah duplikasi">
+                ✅ Lamaran Telah Terkirim (Anti-Dobel)
+              </button>
+            ` : `
+              <button class="btn-preview-letter" data-id="${job.id}">
+                📝 Pratinjau Cover Letter
+              </button>
+              <button class="btn-send-app" data-id="${job.id}">
+                🚀 Kirim dari ${currentUser.email.split('@')[0]}
+              </button>
+            `}
           </div>
           <div class="delivery-status hidden" id="status-${job.id}"></div>
         </div>
-      `).join('');
+        `;
+      }).join('');
 
       attachJobCardEvents(displayed);
     }
@@ -964,8 +1094,12 @@
           <span class="live-pill">🔴 AUTO-SCAN 1M</span>
         </div>
 
-        ${linkedinPosts.map(post => `
-          <div class="linkedin-post-card" id="post-${post.id}">
+        ${linkedinPosts.map(post => {
+          const sentRecord = isApplicationSent(post.id, post.recruiterEmail);
+          const isApplied = !!sentRecord;
+
+          return `
+          <div class="linkedin-post-card ${isApplied ? 'is-applied' : ''}" id="post-${post.id}">
             <div class="post-author-row">
               <div class="author-avatar" style="background:${post.authorAvatarColor || '#0284c7'}">
                 ${post.authorAvatar}
@@ -989,17 +1123,31 @@
               ✉️ <strong>Email Rekruter Terdeteksi:</strong> <code>${post.recruiterEmail}</code>
             </div>
 
+            ${isApplied ? `
+              <div class="already-applied-banner">
+                <span>✅ <strong>SUDAH DILAMAR:</strong> Lamaran & CV telah dikirimkan ke rekruter ini.</span>
+                <small>📅 ${sentRecord.sentAt || 'Terkirim'}</small>
+              </div>
+            ` : ''}
+
             <div class="post-actions-row">
-              <button class="btn-apply-linkedin-recruiter" data-id="${post.id}">
-                ⚡ Lamar Cepat ke Email Rekruter Ini
-              </button>
+              ${isApplied ? `
+                <button class="btn-disabled-sent w-full" disabled title="Lamaran sudah pernah dikirimkan ke rekruter ini">
+                  ✅ Sudah Pernah Dilamar (Anti-Dobel)
+                </button>
+              ` : `
+                <button class="btn-apply-linkedin-recruiter" data-id="${post.id}">
+                  ⚡ Lamar Cepat ke Email Rekruter Ini
+                </button>
+              `}
               <a href="https://www.linkedin.com/feed/" target="_blank" class="btn-open-linkedin-feed">
                 🔗 Buka di Feed LinkedIn ↗
               </a>
             </div>
             <div class="delivery-status hidden" id="status-${post.id}"></div>
           </div>
-        `).join('')}
+          `;
+        }).join('')}
       `;
     }
 
@@ -1231,9 +1379,14 @@ ${cleanEmail}`;
               </div>
             `;
           }
+          // Rekam status pengiriman permanen (Pencegahan Anti-Dobel)
+          markApplicationSent(job.id, job.title, job.company, job.hrEmail);
+          updateStatusFilterCounts();
+
           if (sendBtn) {
-            sendBtn.textContent = '✅ Terkirim ke Rekruter';
-            sendBtn.style.background = '#10B981';
+            sendBtn.textContent = '✅ Terkirim (Anti-Dobel)';
+            sendBtn.classList.add('btn-disabled-sent');
+            sendBtn.disabled = true;
           }
         } else {
           throw new Error(result.error || 'Pengiriman gagal');
@@ -1253,9 +1406,123 @@ ${cleanEmail}`;
       }
     }
 
+    // ==========================================================
+    // MESIN AUTO-PILOT (PENGIRIMAN LAMARAN OTOMATIS TANPA KLIK)
+    // ==========================================================
+    const toggleAutoPilot = document.getElementById('toggleAutoPilot');
+    const autoPilotBar = document.getElementById('autoPilotBar');
+    const autoPilotStatusPill = document.getElementById('autoPilotStatusPill');
+    const autoPilotDesc = document.getElementById('autoPilotDesc');
+
+    let isAutoPilotActive = localStorage.getItem('autopilot_active') === 'true';
+    let isAutoPilotRunning = false;
+
+    function updateAutoPilotUI(isActive) {
+      if (!autoPilotBar || !autoPilotStatusPill || !autoPilotDesc) return;
+      if (isActive) {
+        autoPilotBar.classList.add('active-glow');
+        autoPilotStatusPill.className = 'autopilot-pill autopilot-pill-on';
+        autoPilotStatusPill.innerHTML = '🟢 AKTIF BERJALAN';
+        autoPilotDesc.innerHTML = '⚡ <strong>Auto-Pilot Aktif:</strong> Bot secara otomatis melamar lowongan & postingan rekruter baru dengan jeda aman tanpa perlu klik manual.';
+      } else {
+        autoPilotBar.classList.remove('active-glow');
+        autoPilotStatusPill.className = 'autopilot-pill autopilot-pill-off';
+        autoPilotStatusPill.innerHTML = '🔴 Nonaktif';
+        autoPilotDesc.innerHTML = 'Secara otomatis mengirimkan surat lamaran & lampiran CV ke lowongan yang belum pernah dilamar tanpa perlu klik manual.';
+      }
+    }
+
+    if (toggleAutoPilot) {
+      toggleAutoPilot.checked = isAutoPilotActive;
+      updateAutoPilotUI(isAutoPilotActive);
+
+      toggleAutoPilot.addEventListener('change', async (e) => {
+        isAutoPilotActive = e.target.checked;
+        localStorage.setItem('autopilot_active', isAutoPilotActive ? 'true' : 'false');
+        updateAutoPilotUI(isAutoPilotActive);
+
+        if (isAutoPilotActive) {
+          showNotifBanner('🤖 Mode Auto-Pilot AKTIF: Sistem otomatis melamar lowongan yang cocok satu per satu!');
+          await runAutoPilotQueue();
+        } else {
+          showNotifBanner('⏸️ Mode Auto-Pilot DINONAKTIFKAN.');
+        }
+      });
+    }
+
+    async function runAutoPilotQueue() {
+      if (!isAutoPilotActive || isAutoPilotRunning) return;
+      isAutoPilotRunning = true;
+
+      try {
+        // 1. Ambil lowongan portal yang belum dilamar
+        const unappliedJobs = allJobs.filter(j => !isApplicationSent(j.id, j.hrEmail));
+        // 2. Ambil postingan feed LinkedIn yang belum dilamar
+        const unappliedPosts = linkedinPosts.filter(p => !isApplicationSent(p.id, p.recruiterEmail));
+
+        const totalToApply = unappliedJobs.length + unappliedPosts.length;
+        if (totalToApply === 0) {
+          isAutoPilotRunning = false;
+          return;
+        }
+
+        if (autoPilotDesc) {
+          autoPilotDesc.innerHTML = `🚀 <strong>Sedang Memproses:</strong> ${totalToApply} lowongan siap dilamar otomatis satu per satu...`;
+        }
+
+        // Prioritas 1: Postingan rekruter LinkedIn
+        for (const post of unappliedPosts) {
+          if (!isAutoPilotActive) break;
+          
+          const jobObj = {
+            id: post.id,
+            title: post.jobTargetTitle || 'Operations Coordinator',
+            company: post.companyTarget || 'Perusahaan Rekruter',
+            hrEmail: post.recruiterEmail,
+            source: 'Feed Postingan LinkedIn (Auto-Pilot)'
+          };
+
+          const tailoredLetter = buildPositionTailoredLetter(jobObj.title, jobObj.company, currentUser.name, currentUser.email);
+          await sendApplicationEmail(jobObj, tailoredLetter);
+          renderLinkedInFeed();
+
+          // Jeda aman 3 detik antarpengiriman
+          await new Promise(r => setTimeout(r, 3000));
+        }
+
+        // Prioritas 2: Lowongan portal resmi
+        for (const job of unappliedJobs) {
+          if (!isAutoPilotActive) break;
+
+          const tailoredLetter = buildPositionTailoredLetter(job.title, job.company, currentUser.name, currentUser.email);
+          await sendApplicationEmail(job, tailoredLetter);
+          renderFilteredJobs();
+
+          // Jeda aman 3 detik antarpengiriman
+          await new Promise(r => setTimeout(r, 3000));
+        }
+
+        playNotificationTone();
+        showNotifBanner('🎉 Mode Auto-Pilot: Semua lowongan yang cocok telah berhasil dilamar otomatis!');
+        updateAutoPilotUI(isAutoPilotActive);
+      } catch (err) {
+        console.error('Error saat Auto-Pilot:', err);
+      } finally {
+        isAutoPilotRunning = false;
+      }
+    }
+
     // Tampilkan lowongan awal dan siapkan feed LinkedIn
     renderFilteredJobs();
     renderLinkedInFeed();
+    updateStatusFilterCounts();
+
+    // Jalankan Auto-Pilot jika sudah aktif sejak awal
+    if (isAutoPilotActive) {
+      setTimeout(() => {
+        runAutoPilotQueue();
+      }, 1500);
+    }
   </script>
 </body>
 </html>
