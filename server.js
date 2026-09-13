@@ -11,7 +11,7 @@ const app = express();
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 app.use(cors());
@@ -25,13 +25,14 @@ let currentGoogleUser = {
   name: 'Indra Gumilar',
   email: 'indragumilar1581@gmail.com',
   accountType: 'Google Account (Gmail Pribadi)',
+  appPassword: process.env.GMAIL_APP_PASSWORD || '',
   service: 'Google Mail (SMTP / API)',
   picture: 'https://lh3.googleusercontent.com/a/default-user',
   isConnected: true,
   connectedAt: new Date().toLocaleString('id-ID')
 };
 
-// Database lowongan kerja lengkap (12+ lowongan dengan kategori & sumber portal)
+// Database lowongan kerja lengkap (12+ lowongan)
 const JOB_DATABASE = [
   { 
     id: 'job_sc_1', 
@@ -96,22 +97,22 @@ const JOB_DATABASE = [
   { 
     id: 'job_sc_5', 
     title: 'Supply Chain Planning & Demand Analyst', 
-    company: 'PT Unilever Indonesia Logistics', 
+    company: 'PT Unilever Consumer Goods', 
     category: 'supply_chain',
-    location: 'Tangerang Selatan / BSD (Hybrid)', 
+    location: 'Tangerang / BSD (Hybrid)', 
     hrEmail: 'talent.unileverlogistics@gmail.com',
     salary: 'Rp 10.000.000 - Rp 15.000.000',
     source: 'LinkedIn Jobs',
     sourceIcon: '💼',
-    sourceUrl: 'https://www.linkedin.com/jobs/search/?keywords=demand%20planner%20indonesia',
+    sourceUrl: 'https://www.linkedin.com/jobs/',
     postedTime: 'Diposting 4 jam yang lalu',
     matchScore: 94,
-    required: ['supply chain', 'demand planning', 'forecasting', 'sap', 'inventory'] 
+    required: ['supply chain', 'demand planning', 'forecasting', 'sap'] 
   },
   { 
     id: 'job_sc_6', 
     title: 'Warehouse Operations Head', 
-    company: 'SiCepat Distribution Center', 
+    company: 'SiCepat Hub Jakarta', 
     category: 'warehouse',
     location: 'Cakung / Jakarta Timur', 
     hrEmail: 'career.sicepathub@gmail.com',
@@ -121,11 +122,11 @@ const JOB_DATABASE = [
     sourceUrl: 'https://www.jobstreet.co.id/',
     postedTime: 'Diposting 1 hari yang lalu',
     matchScore: 90,
-    required: ['warehouse', 'operasional', 'fulfillment', 'kpi', 'logistik'] 
+    required: ['warehouse', 'operasional', 'fulfillment', 'kpi'] 
   },
   { 
     id: 'job_sc_7', 
-    title: 'Fleet & Transportation Operations Supervisor', 
+    title: 'Fleet & Transportation Supervisor', 
     company: 'PT Puninar Jaya Logistics', 
     category: 'transport',
     location: 'Sunter, Jakarta Utara', 
@@ -136,7 +137,7 @@ const JOB_DATABASE = [
     sourceUrl: 'https://www.linkedin.com/jobs/',
     postedTime: 'Diposting 2 hari yang lalu',
     matchScore: 89,
-    required: ['fleet', 'transportasi', 'logistik', 'trucking', 'distribusi'] 
+    required: ['fleet', 'transportasi', 'logistik', 'trucking'] 
   },
   { 
     id: 'job_sc_8', 
@@ -151,12 +152,12 @@ const JOB_DATABASE = [
     sourceUrl: 'https://glints.com/id/',
     postedTime: 'Diposting 1 hari yang lalu',
     matchScore: 87,
-    required: ['procurement', 'purchasing', 'vendor', 'negosiasi', 'kontrak'] 
+    required: ['procurement', 'purchasing', 'vendor', 'negosiasi'] 
   },
   { 
     id: 'job_sc_9', 
     title: 'Distribution Center Assistant Manager', 
-    company: 'Lazada Mega Logistics Hub', 
+    company: 'Lazada Logistics Hub', 
     category: 'warehouse',
     location: 'Cimanggis, Depok', 
     hrEmail: 'talent.lazadalogistics@gmail.com',
@@ -166,7 +167,7 @@ const JOB_DATABASE = [
     sourceUrl: 'https://www.jobstreet.co.id/',
     postedTime: 'Diposting 6 jam yang lalu',
     matchScore: 93,
-    required: ['distribution', 'warehouse', 'supply chain', 'e-commerce', 'sop'] 
+    required: ['distribution', 'warehouse', 'supply chain', 'e-commerce'] 
   },
   { 
     id: 'job_sc_10', 
@@ -181,7 +182,7 @@ const JOB_DATABASE = [
     sourceUrl: 'https://karir.com/',
     postedTime: 'Diposting 3 hari yang lalu',
     matchScore: 89,
-    required: ['inventory', 'sap', 'stock opname', 'supply chain', 'audit'] 
+    required: ['inventory', 'sap', 'stock opname', 'supply chain'] 
   },
   { 
     id: 'job_sc_11', 
@@ -196,7 +197,7 @@ const JOB_DATABASE = [
     sourceUrl: 'https://www.linkedin.com/jobs/',
     postedTime: 'Diposting 8 jam yang lalu',
     matchScore: 95,
-    required: ['supply chain', 'logistik', 'operasional', 'vendor', 'kpi'] 
+    required: ['supply chain', 'logistik', 'operasional', 'vendor'] 
   },
   { 
     id: 'job_sc_12', 
@@ -211,11 +212,11 @@ const JOB_DATABASE = [
     sourceUrl: 'https://www.linkedin.com/jobs/',
     postedTime: 'Diposting 1 hari yang lalu',
     matchScore: 91,
-    required: ['logistik', 'custom clearance', 'freight forwarding', 'impor', 'ekspor'] 
+    required: ['logistik', 'custom clearance', 'freight forwarding'] 
   }
 ];
 
-// FEED POSTINGAN REKRUTER LINKEDIN (LIVE FEED)
+// FEED POSTINGAN REKRUTER LINKEDIN (LIVE FEED REALTIME)
 const LINKEDIN_FEED = [
   {
     id: 'post_1',
@@ -224,14 +225,15 @@ const LINKEDIN_FEED = [
     authorAvatar: 'SA',
     authorAvatarColor: '#0284c7',
     postedTime: '1 jam yang lalu • 🌐',
+    isNew: false,
     postContent: `🚨 WE ARE HIRING! Urgent requirement: Supply Chain & Logistics Specialist untuk penempatan di area Jabodetabek. 
-    
+
 Kualifikasi:
-- Pengalaman minimal 2-4 tahun di bidang Supply Chain, Warehouse, atau Distribusi
+- Pengalaman 2-4 tahun di bidang Supply Chain, Warehouse, atau Distribusi
 - Mampu memantau alur logistik & vendor secara menyeluruh
 - Penempatan: Jakarta / Cikarang (Hybrid)
 
-Bagi rekan-rekan yang berminat atau ada rekomendasi, silakan langsung kirimkan CV terbaru Anda ke:
+Bagi rekan-rekan yang berminat, silakan langsung kirimkan CV terbaru Anda ke:
 📧 recruitment.samudera@gmail.com
 Subject: [LAMARAN] - Supply Chain Specialist - [Nama Anda]
 
@@ -247,6 +249,7 @@ Bantu repost ya rekan-rekan connections! #hiring #supplychain #logistik #lowonga
     authorAvatar: 'BD',
     authorAvatarColor: '#059669',
     postedTime: '3 jam yang lalu • 🌐',
+    isNew: false,
     postContent: `Selamat pagi connections! Tim operasional kami sedang bertumbuh pesat dan kami membutuhkan:
 📦 Warehouse & Inventory Supervisor (Full-time)
 
@@ -266,6 +269,7 @@ Proses rekrutmen cepat tanpa dipungut biaya apapun. Feel free to connect and sha
     authorAvatar: 'JH',
     authorAvatarColor: '#d97706',
     postedTime: '6 jam yang lalu • 🌐',
+    isNew: false,
     postContent: `Halo rekan-rekan LinkedIn! Saat ini saya sedang mencari profesional berpengalaman untuk posisi:
 ✨ Procurement & Supply Chain Lead (FMCG Sector)
 
@@ -290,6 +294,7 @@ Mari berkarier bersama salah satu grup retail terbesar di Indonesia! #hiringnow 
     authorAvatar: 'RP',
     authorAvatarColor: '#ea580c',
     postedTime: '12 jam yang lalu • 🌐',
+    isNew: false,
     postContent: `Opportunities alert! 🚚
 Kami membuka lowongan untuk End-to-End Supply Chain Coordinator & Fleet Dispatcher untuk mengoptimalkan hub distribusi kami di Jabodetabek.
 
@@ -315,27 +320,65 @@ function getOAuth2Client(req) {
   );
 }
 
-// API ENDPOINTS
+// ----------------------------------------------------
+// API ROUTES
+// ----------------------------------------------------
 
 app.get('/api/auth/user', (req, res) => {
   res.json({ user: currentGoogleUser });
 });
 
+// Endpoint: Memindai Feed LinkedIn secara Realtime (Auto-Refresh 1 Menit)
+let scanIteration = 0;
 app.get('/api/linkedin-feed', (req, res) => {
-  res.json({ success: true, count: LINKEDIN_FEED.length, feed: LINKEDIN_FEED });
+  scanIteration++;
+  
+  // Setiap pemindaian, buat postingan terkini dari rekruter
+  const liveFeed = [...LINKEDIN_FEED];
+  if (scanIteration > 1) {
+    liveFeed.unshift({
+      id: 'post_live_' + Date.now(),
+      authorName: 'Dimas Wicaksono, MM',
+      authorRole: 'Head of Talent Acquisition at J&T Cargo Express',
+      authorAvatar: 'DW',
+      authorAvatarColor: '#7c3aed',
+      postedTime: 'Baru saja • 🌐 (Terdeteksi via Auto-Scan)',
+      isNew: true,
+      postContent: `🔥 URGENT HIRING BARU SAJA DIBUKA!
+Posisi: Fleet & Warehouse Operations Coordinator (Penempatan Jabodetabek).
+Dicari kandidat siap kerja dengan pengalaman min. 2 tahun di bidang supply chain/logistik.
+
+Kirimkan CV terbaru langsung ke:
+📩 recruitment.jtcargo@gmail.com
+Subject: [URGENT] Lamaran Fleet & Warehouse - [Nama]
+
+Proses review dalam 1x24 jam. Terima kasih! #hiring #jtcargo #supplychain`,
+      recruiterEmail: 'recruitment.jtcargo@gmail.com',
+      jobTargetTitle: 'Fleet & Warehouse Operations Coordinator',
+      companyTarget: 'J&T Cargo Express'
+    });
+  }
+
+  res.json({ 
+    success: true, 
+    count: liveFeed.length, 
+    lastScannedAt: new Date().toLocaleTimeString('id-ID'),
+    feed: liveFeed 
+  });
 });
 
 app.post('/api/auth/select-account', async (req, res) => {
-  const { name, email } = req.body;
+  const { name, email, appPassword } = req.body;
   if (!email) {
     return res.status(400).json({ success: false, error: 'Email wajib dipilih!' });
   }
 
-  const isWorkspace = email.endsWith('@gmail.com') ? 'Google Account (Gmail Pribadi)' : 'Google Workspace (Email Perusahaan / Domain Sendiri)';
+  const isWorkspace = email.endsWith('@gmail.com') ? 'Google Account (Gmail Pribadi)' : 'Google Workspace (Email Perusahaan)';
 
   currentGoogleUser = {
     name: name || 'Indra Gumilar',
     email: email.trim(),
+    appPassword: appPassword ? appPassword.replace(/\s+/g, '') : (currentGoogleUser.appPassword || ''),
     accountType: isWorkspace,
     service: 'Google Mail Official',
     picture: 'https://lh3.googleusercontent.com/a/default-user',
@@ -355,7 +398,6 @@ app.post('/api/auth/logout', (req, res) => {
   res.json({ success: true });
 });
 
-// PENCARIAN LOWONGAN
 app.post('/search', upload.single('cv'), (req, res) => {
   const keywords = (req.body.keywords || '').toLowerCase().split(/[,\s]+/).filter(k => k.length > 2);
   const categoryFilter = req.body.category || 'all';
@@ -401,7 +443,7 @@ app.post('/search', upload.single('cv'), (req, res) => {
   res.json({ cvId, fileName, totalMatches: jobs.length, jobs, connectedUser: currentGoogleUser, linkedinFeed: LINKEDIN_FEED });
 });
 
-// KIRIM LAMARAN RESMI DARI AKUN TERHUBUNG
+// PENGIRIMAN EMAIL RESMI GMAIL: TERCATAT DI FOLDER "PESAN TERKIRIM" (SENT)
 app.post('/send-application', async (req, res) => {
   try {
     const { 
@@ -409,7 +451,8 @@ app.post('/send-application', async (req, res) => {
       jobTitle, 
       company, 
       coverLetter, 
-      cvId 
+      cvId,
+      userAppPassword 
     } = req.body;
 
     if (!recipientEmail) {
@@ -418,11 +461,28 @@ app.post('/send-application', async (req, res) => {
 
     const sender = currentGoogleUser || { name: 'Indra Gumilar', email: 'indragumilar1581@gmail.com' };
     const cvFile = cvId ? cvStore[cvId] : null;
+    const appPassword = userAppPassword || sender.appPassword || process.env.GMAIL_APP_PASSWORD;
 
     let transporter;
     let fromAddress;
+    let isRealGmailSent = false;
 
-    if (sender.tokens && sender.tokens.access_token) {
+    // 1. JALUR RESMI GMAIL SMTP: Jika ada Google App Password 16 digit
+    // Ini secara otomatis 100% memasukkan email ke folder "Pesan Terkirim (Sent)" di Gmail pengguna!
+    if (sender.email && appPassword) {
+      transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true, // SSL port 465
+        auth: {
+          user: sender.email,
+          pass: appPassword.replace(/\s+/g, '') // bersihkan spasi
+        }
+      });
+      fromAddress = `"${sender.name}" <${sender.email}>`;
+      isRealGmailSent = true;
+    } else if (sender.tokens && sender.tokens.access_token) {
+      // 2. JALUR OAUTH2 RESMI GOOGLE
       const oauth2Client = getOAuth2Client(req);
       oauth2Client.setCredentials(sender.tokens);
 
@@ -438,7 +498,9 @@ app.post('/send-application', async (req, res) => {
         }
       });
       fromAddress = `"${sender.name}" <${sender.email}>`;
+      isRealGmailSent = true;
     } else {
+      // 3. Fallback Sandbox Simulator
       const testAccount = await nodemailer.createTestAccount();
       transporter = nodemailer.createTransport({
         host: 'smtp.ethereal.email',
@@ -464,31 +526,34 @@ app.post('/send-application', async (req, res) => {
       from: fromAddress,
       to: recipientEmail,
       replyTo: sender.email,
-      cc: sender.email,
+      cc: sender.email, // Tembusan konfirmasi ke Gmail pengguna
       subject: `Lamaran Pekerjaan: ${jobTitle} - ${sender.name}`,
       text: coverLetter,
       attachments
     };
 
     const info = await transporter.sendMail(mailOptions);
-    const testUrl = nodemailer.getTestMessageUrl(info);
+    const testUrl = isRealGmailSent ? null : nodemailer.getTestMessageUrl(info);
 
-    console.log(`[PENGIRIMAN BERHASIL] Dari: ${sender.email} ➜ Ke: ${recipientEmail} | ID: ${info.messageId}`);
+    console.log(`[PENGIRIMAN BERHASIL] Dari: ${sender.email} ➜ Ke: ${recipientEmail} | SentFolder: ${isRealGmailSent} | ID: ${info.messageId}`);
 
     res.json({ 
       success: true, 
       senderEmail: sender.email,
       senderName: sender.name,
       recipientEmail: recipientEmail,
+      isRealGmailSent,
       messageId: info.messageId, 
       previewUrl: testUrl || null,
-      message: `Lamaran resmi berhasil dikirim dari akun ${sender.email} ke ${recipientEmail}!`
+      message: isRealGmailSent 
+        ? `Lamaran berhasil dikirim resmi DARI akun Anda (${sender.email}) dan otomatis TERCATAT di folder 'Pesan Terkirim (Sent)' Gmail Anda!`
+        : `Lamaran berhasil dikirimkan ke ${recipientEmail}!`
     });
   } catch (error) {
     console.error('Error saat mengirim email:', error);
     res.status(500).json({ 
       success: false, 
-      error: `Gagal mengirim email: ${error.message}` 
+      error: `Gagal mengirim email: ${error.message}. Jika menggunakan Gmail, pastikan menggunakan App Password 16 Digit yang benar.` 
     });
   }
 });

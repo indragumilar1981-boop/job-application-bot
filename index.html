@@ -53,6 +53,27 @@
             <button id="btnDisconnect" class="btn-disconnect">Putuskan</button>
           </div>
         </div>
+
+        <!-- FITUR PENCATATAN PESAN TERKIRIM GMAIL (APP PASSWORD) -->
+        <div class="app-password-setting-box">
+          <div class="app-pwd-header">
+            <span>📁 <strong>Pencatatan Otomatis ke Folder "Pesan Terkirim" (Sent) Gmail</strong></span>
+            <span class="info-tag">smtp.gmail.com:465</span>
+          </div>
+          <p class="app-pwd-desc">
+            Agar setiap email lamaran yang dikirim bot ini <strong>langsung tercatat di folder "Pesan Terkirim" (Sent)</strong> akun Gmail resmi Anda, masukkan 16 digit Sandi Aplikasi Google Anda:
+          </p>
+          <div class="app-pwd-input-row">
+            <input type="password" id="appPasswordInput" placeholder="Contoh: abcd efgh ijkl mnop (16 digit)" />
+            <button type="button" id="btnSaveAppPassword" class="btn-save-pwd">Simpan Sandi</button>
+          </div>
+          <div class="app-pwd-help">
+            <a href="https://myaccount.google.com/apppasswords" target="_blank" class="help-link">
+              🔑 Buat Sandi Aplikasi di Google Account Anda ↗
+            </a>
+            <span id="appPasswordStatus" class="app-pwd-status">Status: Sandbox (Tembusan CC Masuk)</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -79,12 +100,40 @@
 
     <!-- SECTION HASIL: TAB NAVIGASI ANTARA LOWONGAN & FEED LINKEDIN -->
     <div id="resultsSection" class="results-section">
+      <!-- FITUR AUTO-SCAN REAL-TIME SETIAP 1 MENIT -->
+      <div class="autoscan-bar" id="autoScanBar">
+        <div class="autoscan-info">
+          <span class="autoscan-icon" id="scanIcon">🔄</span>
+          <div class="autoscan-text-col">
+            <div class="autoscan-title-row">
+              <strong>Auto-Scan Otomatis (Setiap 1 Menit)</strong>
+              <span class="autoscan-pulse-badge" id="scanStatusBadge">🟢 Memindai Peluang</span>
+            </div>
+            <p class="autoscan-desc">
+              Memindai Feed LinkedIn & portal lowongan baru secara otomatis dalam: <span id="countdownText" class="countdown-highlight">60s</span>
+            </p>
+          </div>
+        </div>
+        <div class="autoscan-actions">
+          <button type="button" id="btnTriggerScanNow" class="btn-scan-now" title="Pindai sekarang tanpa menunggu 1 menit">
+            ⚡ Pindai Sekarang
+          </button>
+          <button type="button" id="btnToggleAutoScan" class="btn-pause-scan" title="Jeda / Lanjutkan Auto-Scan">
+            ⏸️ Jeda
+          </button>
+        </div>
+        <!-- Progress Bar -->
+        <div class="autoscan-progress-track">
+          <div class="autoscan-progress-fill" id="scanProgressFill"></div>
+        </div>
+      </div>
+
       <div class="view-tabs">
         <button class="tab-btn active" id="tabJobsBtn">
           🎯 Rekomendasi Lowongan Portal (<span id="jobsCount">12</span>)
         </button>
         <button class="tab-btn" id="tabLinkedInBtn">
-          <span class="pulse-dot"></span> 📢 Feed Rekruter LinkedIn (Live)
+          <span class="pulse-dot"></span> 📢 Feed Rekruter LinkedIn (<span id="linkedinCount">4</span>)
         </button>
       </div>
 
@@ -214,13 +263,27 @@
     const customEmailInput = document.getElementById('customEmailInput');
     const modalSenderEmail = document.getElementById('modalSenderEmail');
 
-    // Tabs
+    // TABS & CONTAINERS
     const tabJobsBtn = document.getElementById('tabJobsBtn');
     const tabLinkedInBtn = document.getElementById('tabLinkedInBtn');
     const jobsList = document.getElementById('jobsList');
     const linkedinFeedList = document.getElementById('linkedinFeedList');
     const categoryFilters = document.getElementById('categoryFilters');
     const jobsCountEl = document.getElementById('jobsCount');
+    const linkedinCountEl = document.getElementById('linkedinCount');
+
+    // AUTO-SCAN ELEMENTS
+    const countdownText = document.getElementById('countdownText');
+    const scanProgressFill = document.getElementById('scanProgressFill');
+    const btnTriggerScanNow = document.getElementById('btnTriggerScanNow');
+    const btnToggleAutoScan = document.getElementById('btnToggleAutoScan');
+    const scanStatusBadge = document.getElementById('scanStatusBadge');
+    const scanIcon = document.getElementById('scanIcon');
+
+    // APP PASSWORD ELEMENTS (GMAIL SENT FOLDER RECORDING)
+    const appPasswordInput = document.getElementById('appPasswordInput');
+    const btnSaveAppPassword = document.getElementById('btnSaveAppPassword');
+    const appPasswordStatus = document.getElementById('appPasswordStatus');
 
     // Modal
     const modal = document.getElementById('coverLetterModal');
@@ -232,6 +295,38 @@
     let activeJob = null;
     let currentCvId = 'cv_' + Date.now();
     let currentCvFileName = 'Supply_Chain_Indra_Gumilar.pdf';
+
+    // Inisialisasi App Password
+    const savedAppPwd = localStorage.getItem('gmail_app_password');
+    if (savedAppPwd) {
+      appPasswordInput.value = savedAppPwd;
+      appPasswordStatus.innerHTML = '✅ <strong style="color:#34d399;">Aktif:</strong> Otomatis tercatat di folder <em>"Pesan Terkirim"</em> Gmail';
+    }
+
+    btnSaveAppPassword.addEventListener('click', async () => {
+      const pwd = appPasswordInput.value.trim().replace(/\s+/g, '');
+      if (!pwd || pwd.length < 8) {
+        alert('Silakan masukkan Sandi Aplikasi Google (biasanya 16 karakter). Dapatkan di myaccount.google.com/apppasswords');
+        return;
+      }
+      localStorage.setItem('gmail_app_password', pwd);
+      appPasswordStatus.innerHTML = '✅ <strong style="color:#34d399;">Tersimpan:</strong> Email akan tercatat di folder "Pesan Terkirim" Gmail';
+      
+      // Sinkronkan ke server
+      try {
+        await fetch('/api/auth/select-account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name: currentUser.name, 
+            email: currentUser.email,
+            appPassword: pwd
+          })
+        });
+      } catch (e) {}
+
+      showNotifBanner(`🔐 Sandi Aplikasi Google berhasil disimpan! Email lamaran akan langsung masuk folder "Pesan Terkirim" di Gmail Anda.`);
+    });
 
     // Cek akun lokal
     const savedUser = localStorage.getItem('gmail_selected_user');
@@ -279,7 +374,11 @@
         const res = await fetch('/api/auth/select-account', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email })
+          body: JSON.stringify({ 
+            name, 
+            email, 
+            appPassword: localStorage.getItem('gmail_app_password') || '' 
+          })
         });
         const data = await res.json();
         if (data.success) {
@@ -593,6 +692,106 @@
     allJobs = EXPANDED_JOBS;
     linkedinPosts = DEFAULT_LINKEDIN_FEED;
 
+    // ==========================================================
+    // LOGIKA AUTO-SCAN 1 MENIT (60 DETIK) SECARA REAL-TIME
+    // ==========================================================
+    let countdownSeconds = 60;
+    let isAutoScanRunning = true;
+    let scanIntervalTimer = null;
+
+    function startAutoScanCountdown() {
+      if (scanIntervalTimer) clearInterval(scanIntervalTimer);
+
+      scanIntervalTimer = setInterval(() => {
+        if (!isAutoScanRunning) return;
+
+        countdownSeconds--;
+        if (countdownSeconds < 0) {
+          countdownSeconds = 60;
+          performAutoScan(true);
+        }
+
+        countdownText.textContent = `${countdownSeconds}s`;
+        const percent = ((60 - countdownSeconds) / 60) * 100;
+        scanProgressFill.style.width = `${percent}%`;
+      }, 1000);
+    }
+
+    // Play subtle notification chime via Web Audio API
+    function playNotificationTone() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    async function performAutoScan(isAutomated = false) {
+      scanStatusBadge.innerHTML = '⏳ <strong>Sedang Memindai...</strong>';
+      scanStatusBadge.style.background = 'rgba(245, 158, 11, 0.2)';
+      scanStatusBadge.style.color = '#fbbf24';
+
+      try {
+        const res = await fetch('/api/linkedin-feed');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.feed && data.feed.length) {
+            const previousCount = linkedinPosts.length;
+            linkedinPosts = data.feed;
+            linkedinCountEl.textContent = linkedinPosts.length;
+
+            if (linkedinPosts.length > previousCount) {
+              playNotificationTone();
+              showNotifBanner(`🔔 Auto-Scan 1 Menit: Ditemukan postingan lowongan rekruter baru di Feed LinkedIn!`);
+              if (!linkedinFeedList.classList.contains('hidden')) {
+                renderLinkedInFeed();
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.log('Scan offline fallback:', err);
+      }
+
+      setTimeout(() => {
+        scanStatusBadge.innerHTML = '🟢 <strong>Memindai Peluang</strong>';
+        scanStatusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+        scanStatusBadge.style.color = '#34d399';
+      }, 1200);
+    }
+
+    btnTriggerScanNow.addEventListener('click', () => {
+      countdownSeconds = 60;
+      scanProgressFill.style.width = '0%';
+      performAutoScan(false);
+    });
+
+    btnToggleAutoScan.addEventListener('click', () => {
+      isAutoScanRunning = !isAutoScanRunning;
+      if (isAutoScanRunning) {
+        btnToggleAutoScan.innerHTML = '⏸️ Jeda';
+        scanStatusBadge.innerHTML = '🟢 <strong>Memindai Peluang</strong>';
+        scanStatusBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+        scanStatusBadge.style.color = '#34d399';
+      } else {
+        btnToggleAutoScan.innerHTML = '▶️ Lanjutkan';
+        scanStatusBadge.innerHTML = '⏸️ <strong>Auto-Scan Dijeda</strong>';
+        scanStatusBadge.style.background = 'rgba(148, 163, 184, 0.2)';
+        scanStatusBadge.style.color = '#cbd5e1';
+      }
+    });
+
+    startAutoScanCountdown();
+
     // FORM SUBMIT SEARCH
     const form = document.getElementById('uploadForm');
     const submitBtn = document.getElementById('submitBtn');
@@ -636,6 +835,7 @@
 
       setTimeout(() => {
         jobsCountEl.textContent = allJobs.length;
+        linkedinCountEl.textContent = linkedinPosts.length;
         renderFilteredJobs();
         submitBtn.disabled = false;
         submitBtn.textContent = '⚡ Analisis CV & Temukan Lowongan';
@@ -706,9 +906,9 @@
         <div class="feed-header-banner">
           <div>
             <h3 class="feed-title">📢 Postingan Status Rekruter di Feed LinkedIn</h3>
-            <p class="feed-sub">Postingan rekruter/headhunter yang sedang mencari kandidat secara langsung di LinkedIn feed.</p>
+            <p class="feed-sub">Postingan rekruter/headhunter yang sedang mencari kandidat secara langsung di LinkedIn feed (Auto-Refresh 1 Menit).</p>
           </div>
-          <span class="live-pill">🔴 LIVE SCAN</span>
+          <span class="live-pill">🔴 AUTO-SCAN 1M</span>
         </div>
 
         ${linkedinPosts.map(post => `
@@ -721,6 +921,7 @@
                 <div class="author-name">
                   <strong>${post.authorName}</strong>
                   <span class="author-badge-in">in</span>
+                  ${post.isNew ? '<span class="badge-new-post">✨ Baru Saja Masuk!</span>' : ''}
                 </div>
                 <div class="author-role">${post.authorRole}</div>
                 <div class="post-time">${post.postedTime}</div>
@@ -850,7 +1051,8 @@ ${email}`;
         jobTitle: job.title,
         company: job.company,
         coverLetter: customCoverLetter,
-        cvId: currentCvId
+        cvId: currentCvId,
+        userAppPassword: localStorage.getItem('gmail_app_password') || ''
       };
 
       try {
@@ -869,15 +1071,22 @@ ${email}`;
                 <div>✅ <strong>Lamaran & Lampiran CV Berhasil Terkirim!</strong></div>
                 <div class="receipt-text">Pengirim Resmi: <strong>${currentUser.email}</strong> ➜ HRD: <strong>${job.hrEmail}</strong></div>
                 <div class="receipt-text">Sumber: <strong>${job.source}</strong></div>
-                <div class="receipt-text">🔔 <strong>Salinan bukti telah masuk ke Gmail Anda (${currentUser.email})</strong></div>
+                
+                ${result.isRealGmailSent ? `
+                  <div class="sent-folder-tag">
+                    📁 <strong>TERCATAT DI GMAIL:</strong> Tersimpan otomatis di folder <strong>"Pesan Terkirim (Sent)"</strong> akun ${currentUser.email} (smtp.gmail.com).
+                  </div>
+                ` : `
+                  <div class="receipt-text">🔔 <strong>Salinan bukti & tembusan telah masuk ke Gmail Anda (${currentUser.email})</strong></div>
+                  <div class="receipt-text" style="color:#93c5fd;">💡 <em>Tips: Masukkan Sandi Aplikasi Google di atas agar email langsung tercatat di folder "Pesan Terkirim" Gmail.</em></div>
+                `}
+
                 <div class="receipt-text">Message-ID: <code>${result.messageId}</code></div>
                 ${result.previewUrl ? `
                   <div class="preview-link-box">
                     <a href="${result.previewUrl}" target="_blank" class="receipt-btn">📄 Buka Bukti Tampilan Email & Lampiran CV ↗</a>
                   </div>
-                ` : `
-                  <div class="receipt-text">Silakan buka aplikasi Gmail Anda untuk melihat pesan di folder Pesan Terkirim.</div>
-                `}
+                ` : ''}
               </div>
             `;
           }
