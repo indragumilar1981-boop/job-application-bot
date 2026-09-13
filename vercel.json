@@ -2,11 +2,15 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/api/auth/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
       "source": "/search",
       "destination": "/api/index.js"
     },
     {
-      "source": "/apply",
+      "source": "/send-application",
       "destination": "/api/index.js"
     },
     {
