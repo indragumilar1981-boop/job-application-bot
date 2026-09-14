@@ -855,6 +855,258 @@ app.post(['/add-job', '/api/add-job'], (req, res) => {
   res.json({ success: true, job: newJob, message: `Lowongan "${title}" berhasil ditambahkan!` });
 });
 
+// ENDPOINT: Parse lowongan dari URL LinkedIn (input manual user)
+app.post(['/parse-linkedin-job', '/api/parse-linkedin-job'], async (req, res) => {
+  const { url, manualData } = req.body;
+
+  // === MODE MANUAL: user isi sendiri form ===
+  if (manualData && manualData.title && manualData.company) {
+    const { title, company, location, hrEmail, salary, description } = manualData;
+    const exists = JOB_DATABASE.find(j => j.title === title && j.company === company);
+    if (exists) {
+      return res.json({ success: true, isDuplicate: true, job: exists, message: 'Lowongan ini sudah ada di daftar.' });
+    }
+    const newJob = {
+      id: `job_manual_${Date.now()}`,
+      title: title.trim(),
+      company: company.trim(),
+      category: detectCategory(title),
+      location: (location || 'Lokasi tidak diketahui').trim(),
+      hrEmail: (hrEmail || '').trim(),
+      salary: (salary || 'Sesuai pengalaman').trim(),
+      source: 'Input Manual (LinkedIn)',
+      sourceIcon: '📋',
+      sourceUrl: url || '',
+      postedTime: `Ditambahkan ${new Date().toLocaleDateString('id-ID')}`,
+      matchScore: 85,
+      required: extractKeywords(title + ' ' + (description || '')),
+      isManual: true
+    };
+    JOB_DATABASE.unshift(newJob);
+    console.log(`[PARSE-LINKEDIN] Manual: "${title}" @ ${company}`);
+    return res.json({ success: true, job: newJob, source: 'manual', message: `Lowongan "${title}" berhasil ditambahkan!` });
+  }
+
+  // === MODE OTOMATIS: fetch & parse URL LinkedIn ===
+  if (!url) {
+    return res.status(400).json({ success: false, error: 'URL wajib diisi.' });
+  }
+
+  // Validasi format URL LinkedIn
+  const isLinkedInJob = /linkedin\.com\/(jobs\/view|jobs\/collections|jobs\/search)/i.test(url);
+  const isLinkedInPost = /linkedin\.com\/posts\//i.test(url);
+  if (!isLinkedInJob && !isLinkedInPost && !url.includes('linkedin.com')) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'URL tidak valid. Harap masukkan URL dari linkedin.com/jobs/view/... atau link posting rekruter LinkedIn.',
+      needManual: false
+    });
+  }
+
+  try {
+    // Fetch halaman publik dengan headers menyerupai browser
+    const https = require('https');
+    const http = require('http');
+    const protocol = url.startsWith('https') ? https : http;
+
+    const fetchPage = (targetUrl, redirectCount = 0) => new Promise((resolve, reject) => {
+      if (redirectCount > 5) return reject(new Error('Terlalu banyak redirect'));
+      const options = {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Accept-Encoding': 'identity',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive'
+        }
+      };
+      const proto = targetUrl.startsWith('https') ? https : http;
+      proto.get(targetUrl, options, (r) => {
+        if ([301, 302, 303, 307, 308].includes(r.statusCode) && r.headers.location) {
+          return fetchPage(r.headers.location, redirectCount + 1).then(resolve).catch(reject);
+        }
+        let data = '';
+        r.setEncoding('utf8');
+        r.on('data', chunk => { data += chunk; if (data.length > 500000) r.destroy(); });
+        r.on('end', () => resolve({ html: data, statusCode: r.statusCode }));
+        r.on('error', reject);
+      }).on('error', reject).setTimeout(10000, function() { this.destroy(); reject(new Error('Request timeout')); });
+    });
+
+    const { html, statusCode } = await fetchPage(url);
+
+    // Helper: ekstrak konten tag meta
+    const getMeta = (name) => {
+      const patterns = [
+        new RegExp(`<meta[^>]+property=["']${name}["'][^>]+content=["']([^"']+)["']`, 'i'),
+        new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${name}["']`, 'i'),
+        new RegExp(`<meta[^>]+name=["']${name}["'][^>]+content=["']([^"']+)["']`, 'i'),
+        new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+name=["']${name}["']`, 'i'),
+      ];
+      for (const p of patterns) {
+        const m = html.match(p);
+        if (m && m[1]) return decodeHtmlEntities(m[1].trim());
+      }
+      return '';
+    };
+
+    const getTitle = () => {
+      const m = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      return m ? decodeHtmlEntities(m[1].trim()) : '';
+    };
+
+    function decodeHtmlEntities(str) {
+      return str
+        .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
+        .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(parseInt(n)));
+    }
+
+    // Deteksi jika LinkedIn meminta login (halaman authwall)
+    const isBlocked = html.includes('authwall') || html.includes('session_redirect') ||
+      html.includes('Sign in to LinkedIn') || html.includes('Join LinkedIn') ||
+      (statusCode === 200 && html.length < 5000 && !html.includes('og:title'));
+
+    if (isBlocked) {
+      return res.json({
+        success: false,
+        blocked: true,
+        needManual: true,
+        url,
+        message: 'LinkedIn meminta login untuk halaman ini. Gunakan form manual untuk menginput data lowongan secara langsung.'
+      });
+    }
+
+    // Parse metadata Open Graph
+    let title = getMeta('og:title') || getMeta('twitter:title') || '';
+    let description = getMeta('og:description') || getMeta('twitter:description') || '';
+    let siteName = getMeta('og:site_name') || '';
+
+    // Fallback: parse dari <title>
+    const pageTitle = getTitle();
+    if (!title && pageTitle) {
+      // Format biasanya: "Posisi Jabatan | Nama Perusahaan | LinkedIn"
+      const parts = pageTitle.split(/\s*[\|–—-]\s*/);
+      if (parts.length >= 2) {
+        title = parts[0].trim();
+      } else {
+        title = pageTitle.replace(/\| LinkedIn/i, '').trim();
+      }
+    }
+
+    // Ekstrak nama perusahaan
+    let company = '';
+    const titleParts = pageTitle.split(/\s*[\|–—]\s*/);
+    if (titleParts.length >= 2) {
+      company = titleParts[1].replace(/\s*\|\s*LinkedIn/i, '').trim();
+    }
+    // Fallback dari JSON-LD jika ada
+    const jsonLdMatch = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i);
+    if (jsonLdMatch) {
+      try {
+        const jsonLd = JSON.parse(jsonLdMatch[1]);
+        if (!title && jsonLd.title) title = jsonLd.title;
+        if (!company && jsonLd.hiringOrganization && jsonLd.hiringOrganization.name) company = jsonLd.hiringOrganization.name;
+        if (!company && jsonLd.name) company = jsonLd.name;
+        if (jsonLd.jobLocation && jsonLd.jobLocation.address) {
+          const addr = jsonLd.jobLocation.address;
+          description = description || `${addr.addressLocality || ''}, ${addr.addressRegion || ''}, ${addr.addressCountry || ''}`.replace(/^,\s*|,\s*$|,\s*,/g, '').trim();
+        }
+      } catch(e) { /* abaikan jika JSON-LD tidak valid */ }
+    }
+
+    // Ekstrak lokasi dari deskripsi atau title
+    let location = '';
+    const locationPatterns = [
+      /(?:lokasi|location|penempatan|wilayah)[:\s]+([^\n•|]+)/i,
+      /(Jakarta[^,\n]*|Bekasi[^,\n]*|Cikarang[^,\n]*|Bandung[^,\n]*|Surabaya[^,\n]*|Tangerang[^,\n]*|Bogor[^,\n]*|Depok[^,\n]*)/i,
+    ];
+    for (const p of locationPatterns) {
+      const m = (description + ' ' + html.slice(0, 3000)).match(p);
+      if (m && m[1]) { location = m[1].trim().slice(0, 60); break; }
+    }
+
+    // Ekstrak email HR dari seluruh konten halaman
+    const emailMatch = html.match(/\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,6}\b/);
+    const hrEmail = emailMatch ? emailMatch[0] : '';
+
+    if (!title) {
+      return res.json({
+        success: false,
+        needManual: true,
+        url,
+        message: 'Tidak dapat mengekstrak judul lowongan dari URL ini. Silakan gunakan form manual.'
+      });
+    }
+
+    // Cek duplikat
+    const exists = JOB_DATABASE.find(j => j.title === title && j.company === company);
+    if (exists) {
+      return res.json({ success: true, isDuplicate: true, job: exists, message: 'Lowongan ini sudah ada di daftar.' });
+    }
+
+    // Buat objek lowongan baru
+    const newJob = {
+      id: `job_li_${Date.now()}`,
+      title: title.slice(0, 100),
+      company: (company || 'Tidak diketahui').slice(0, 80),
+      category: detectCategory(title),
+      location: (location || 'Lihat di LinkedIn').slice(0, 80),
+      hrEmail: hrEmail,
+      salary: 'Lihat di posting LinkedIn',
+      source: 'LinkedIn (URL Manual)',
+      sourceIcon: '💼',
+      sourceUrl: url,
+      postedTime: `Ditambahkan ${new Date().toLocaleDateString('id-ID')}`,
+      matchScore: 88,
+      required: extractKeywords(title + ' ' + description),
+      description: description.slice(0, 300),
+      isManual: true
+    };
+
+    JOB_DATABASE.unshift(newJob);
+    console.log(`[PARSE-LINKEDIN] Berhasil parse: "${title}" @ ${company || 'unknown'}`);
+
+    return res.json({
+      success: true,
+      job: newJob,
+      source: 'parsed',
+      message: `Lowongan "${title}" berhasil ditambahkan dari LinkedIn!`
+    });
+
+  } catch (err) {
+    console.error('[PARSE-LINKEDIN] Error:', err.message);
+    return res.json({
+      success: false,
+      needManual: true,
+      url,
+      message: `Gagal mengambil data dari URL (${err.message}). Gunakan form manual untuk menginput data lowongan.`
+    });
+  }
+});
+
+// Helper: deteksi kategori dari judul
+function detectCategory(title) {
+  const t = (title || '').toLowerCase();
+  if (/warehouse|gudang|inventory|stock|wms/i.test(t)) return 'warehouse';
+  if (/procurement|purchasing|vendor|sourcing/i.test(t)) return 'procurement';
+  if (/fleet|transport|driver|armada|trucking/i.test(t)) return 'transport';
+  return 'supply_chain';
+}
+
+// Helper: ekstrak kata kunci relevan dari teks
+function extractKeywords(text) {
+  const masterKeywords = [
+    'supply chain', 'logistik', 'warehouse', 'pergudangan', 'inventory', 'stock opname',
+    'procurement', 'purchasing', 'vendor', 'distribusi', 'operasional', 'sap', 'wms',
+    'fleet', 'transportasi', 'forecasting', 'demand planning', 'kpi', 'supervisor',
+    'manager', 'koordinator', 'custom clearance', 'freight', 'ppjk', 'negosiasi'
+  ];
+  const lower = (text || '').toLowerCase();
+  return masterKeywords.filter(k => lower.includes(k)).slice(0, 8);
+}
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'online', timestamp: new Date().toISOString() });
 });

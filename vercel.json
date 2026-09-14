@@ -38,6 +38,14 @@
       "destination": "/api/add-job.js"
     },
     {
+      "source": "/parse-linkedin-job",
+      "destination": "/api/parse-linkedin-job.js"
+    },
+    {
+      "source": "/api/parse-linkedin-job",
+      "destination": "/api/parse-linkedin-job.js"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api/index.js"
     }
