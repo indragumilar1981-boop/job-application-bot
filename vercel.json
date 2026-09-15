@@ -53,7 +53,7 @@
   "crons": [
     {
       "path": "/api/cron-autopilot",
-      "schedule": "0 */2 * * *"
+      "schedule": "0 1 * * *"
     }
   ]
 }
